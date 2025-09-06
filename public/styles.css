@@ -1,0 +1,103 @@
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: #f4f7f6;
+    color: #333;
+    display: flex;
+    justify-content: center;
+    padding: 2rem;
+}
+
+.container {
+    width: 100%;
+    max-width: 720px;
+    background: #fff;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+h1, h2, h3 {
+    color: #1a1a1a;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+h2 {
+    margin-top: 2rem;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+input[type="text"],
+input[type="number"],
+input[type="password"] {
+    width: 100%;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-size: 1rem;
+}
+
+button {
+    padding: 0.6rem 0.9rem;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    margin-right: 0.4rem;
+}
+
+button:hover { background-color: #0056b3; }
+
+#guess-section button,
+#registration-section button,
+#coordination-section button { margin-top: 0.25rem; }
+
+#guess-section input { margin-bottom: 0.4rem; }
+
+.result-display, div[id$="-display"] {
+    margin-top: 0.6rem;
+    padding: 0.8rem;
+    background-color: #f5f6f8;
+    border-left: 3px solid #ccd1d9;
+    border-radius: 4px;
+    font-family: 'Courier New', Courier, monospace;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    min-height: 22px;
+}
+
+/* Hint badges */
+.hint-display { padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 600; }
+.hint-hot { background: #ffdddd; color: #b30000; }
+.hint-warm { background: #fff2cc; color: #aa6b00; }
+.hint-cold { background: #e6f0ff; color: #0047b3; }
+
+/* Proposal cards */
+.deal-card { border: 1px solid #e6e6e6; border-radius: 6px; padding: 0.75rem; margin-bottom: 0.6rem; background: #fff; }
+.deal-header { display: flex; justify-content: space-between; margin-bottom: 0.4rem; }
+.status-badge { padding: 0.1rem 0.4rem; border-radius: 12px; font-size: 0.8rem; }
+.status-pending { background: #fff2cc; color: #7a5c00; }
+.status-accepted { background: #d4edda; color: #155724; }
+.status-rejected { background: #f8d7da; color: #721c24; }
+
+/* Toast */
+.toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #333;
+    color: #fff;
+    padding: 0.8rem 1rem;
+    border-radius: 6px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}

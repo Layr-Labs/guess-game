@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Private Number Guessing Game</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Private Number Guessing Game</h1>
+
+        <div id="registration-section">
+            <h2>Register Player</h2>
+            <input type="text" id="playerId-register" placeholder="Enter Player ID">
+            <button id="register-btn">Register</button>
+            <button id="copy-key-btn" type="button">Copy Key</button>
+            <div id="player-key-display"></div>
+        </div>
+
+        <div id="wallet-section">
+            <h2>Wallet</h2>
+            <input type="text" id="playerId-wallet" placeholder="Your Player ID">
+            <button id="balance-btn">Check Balance</button>
+            <input type="number" id="mint-amount" placeholder="Amount to Mint" value="100">
+            <button id="mint-btn">Mint Funds</button>
+            <div id="balance-display"></div>
+        </div>
+
+        <div id="game-section">
+            <h2>Game Controls</h2>
+            <input type="number" id="game-min" placeholder="Min Number" value="1">
+            <input type="number" id="game-max" placeholder="Max Number" value="100">
+            <input type="number" id="game-fee" placeholder="Guess Fee" value="10">
+            <input type="number" id="game-deadline" placeholder="Deadline (seconds)" value="120">
+            <button id="create-game-btn">Create Game</button>
+            <div id="game-info-display"></div>
+        </div>
+
+        <div id="guess-section">
+            <h2>Make a Guess</h2>
+            <input type="text" id="game-id-guess" placeholder="Game ID">
+            <input type="text" id="playerId-guess" placeholder="Your Player ID">
+            <input type="password" id="player-key-guess" placeholder="Your Secret Key">
+            <button id="use-saved-creds-btn" type="button">Use Saved Credentials</button>
+            <input type="number" id="player-guess" placeholder="Your Guess">
+            <button id="guess-btn">Submit Guess</button>
+            <div id="guess-result-display"></div>
+        </div>
+
+        <div id="status-section">
+            <h2>Game Status</h2>
+            <input type="text" id="game-id-status" placeholder="Game ID">
+            <button id="status-btn">Check Status</button>
+            <div id="status-display"></div>
+        </div>
+
+        <div id="coordination-section">
+            <h2>Coordination & Deals</h2>
+            <input type="text" id="deal-recipient-id" placeholder="Recipient Player ID">
+            <input type="text" id="deal-message" placeholder="do you want warm or cold or hot number for 10% pot share?">
+            <button id="propose-deal-btn">Propose Deal</button>
+            <div id="proposal-result-display"></div>
+
+            <h3>My Pending Proposals</h3>
+            <input type="password" id="my-player-key" placeholder="Enter Your Secret Key to Check">
+            <button id="use-saved-key-coord-btn" type="button">Use Saved Key</button>
+            <button id="check-proposals-btn">Check My Proposals</button>
+            <div id="proposals-display"></div>
+
+            <h3>Respond to a Proposal</h3>
+            <input type="text" id="respond-deal-id" placeholder="Deal ID to Respond To">
+            <button id="accept-deal-btn">Accept</button>
+            <button id="reject-deal-btn">Reject</button>
+            <div id="response-display"></div>
+        </div>
+
+    </div>
+    <div id="toast" class="toast" style="display:none"></div>
+    <script src="app.js"></script>
+</body>
+</html>
