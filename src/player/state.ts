@@ -1,3 +1,5 @@
+import { Game } from '../game/types';
+
 /**
  * Manages player state, including secret keys for authentication.
  * NOTE: This is a simple in-memory store for demonstration.
@@ -5,6 +7,7 @@
  * persistent database and hash the secret keys.
  */
 
+// A simple in-memory map to store player <-> key relationships.
 const playersByKey = new Map<string, string>(); // key -> playerId
 const keysByPlayerId = new Map<string, string>(); // playerId -> key
 
@@ -34,4 +37,11 @@ export function getPlayerIdByKey(key: string): string | undefined {
  */
 export function playerExists(playerId: string): boolean {
     return keysByPlayerId.has(playerId);
+}
+
+/**
+ * Returns a list of all registered player IDs.
+ */
+export function listPlayers(): string[] {
+    return Array.from(keysByPlayerId.keys());
 }

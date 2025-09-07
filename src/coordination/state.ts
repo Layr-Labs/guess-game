@@ -3,9 +3,11 @@
  */
 export type Deal = {
     dealId: string;
-    senderId: string;
-    recipientId: string;
+    gameId: string;
+    senderId: string; // proposer (viewer)
+    recipientId: string; // owner who may share
     message: string;
+    potSharePercent: number;
     status: 'pending' | 'accepted' | 'rejected';
     timestamp: number;
 };
@@ -13,6 +15,9 @@ export type Deal = {
 // In-memory stores for deals. In production, use a persistent database.
 const deals = new Map<string, Deal>();
 const pendingDealsByRecipient = new Map<string, string[]>();
+
+// In-memory share permissions: key = `${gameId}|${ownerId}|${viewerId}`
+const sharePermissions = new Set<string>();
 
 /**
  * Creates and stores a new deal proposal.
@@ -61,4 +66,42 @@ export function updateDealStatus(dealId: string, status: 'accepted' | 'rejected'
 export function getPendingDealsForRecipient(recipientId: string): Deal[] {
     const dealIds = pendingDealsByRecipient.get(recipientId) ?? [];
     return dealIds.map(id => deals.get(id)).filter(deal => deal !== undefined) as Deal[];
+}
+
+/**
+ * Grants permission for viewerId to view ownerId's guesses for gameId.
+ */
+export function grantSharePermission(gameId: string, ownerId: string, viewerId: string): void {
+    sharePermissions.add(`${gameId}|${ownerId}|${viewerId}`);
+}
+
+/**
+ * Checks permission for viewerId to view ownerId's guesses for gameId.
+ */
+export function hasSharePermission(gameId: string, ownerId: string, viewerId: string): boolean {
+    return sharePermissions.has(`${gameId}|${ownerId}|${viewerId}`);
+}
+
+/**
+ * Returns accepted share terms for a given winner (viewer) in a game.
+ * Each entry contains the ownerId and agreed potSharePercent.
+ */
+export function getAcceptedSharesForWinner(gameId: string, viewerId: string): { ownerId: string; percent: number }[] {
+    const out: { ownerId: string; percent: number }[] = [];
+    deals.forEach(d => {
+        if (d.gameId === gameId && d.senderId === viewerId && d.status === 'accepted') {
+            out.push({ ownerId: d.recipientId, percent: d.potSharePercent });
+        }
+    });
+    return out;
+}
+
+export function getOutgoingShares(gameId: string, viewerId: string): { recipientId: string; percent: number }[] {
+    const out: { recipientId: string; percent: number }[] = [];
+    deals.forEach(d => {
+        if (d.gameId === gameId && d.senderId === viewerId && d.status === 'accepted') {
+            out.push({ recipientId: d.recipientId, percent: d.potSharePercent });
+        }
+    });
+    return out;
 }

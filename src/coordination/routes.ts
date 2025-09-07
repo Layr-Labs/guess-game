@@ -1,15 +1,38 @@
 import { Router, Request, Response } from 'express';
-import { createDeal, getDeal, updateDealStatus, getPendingDealsForRecipient, Deal } from './state';
-import { getPlayerIdByKey, playerExists } from '../player/state';
+import { createDeal, Deal, updateDealStatus, getDeal, grantSharePermission, getPendingDealsForRecipient } from './state';
+import { getPlayerIdByKey, playerExists, listPlayers } from '../player/state';
 import { cryptoRandomId } from '../crypto';
+import { getGame, listGameActivities } from '../game/state';
 
 const router = Router();
 
 /**
- * @route POST /coordination/propose
- * Proposes a deal to another player.
+ * @route GET /coordination/players
+ * Lists all registered players (IDs only).
  */
-router.post('/propose', (req: Request, res: Response) => {
+router.get('/players', (_req: Request, res: Response) => {
+    res.status(200).json({ players: listPlayers() });
+});
+
+/**
+ * @route GET /coordination/:gameId/activities
+ * Lists all activities (playerId + hint) for a game. No numbers revealed.
+ */
+router.get('/:gameId/activities', (req: Request, res: Response) => {
+    const { gameId } = req.params;
+    const game = getGame(gameId);
+    if (!game) return res.status(404).json({ error: 'game not found' });
+    const activities = listGameActivities(gameId);
+    res.status(200).json({ gameId, activities });
+});
+
+/**
+ * @route POST /coordination/auto-propose
+ * Automatically propose a fixed message to a target player.
+ * Body: { recipientId, potSharePercent, gameId }
+ * Message template: "I have a {hint} clue. Share the number for {percent}% pot share?"
+ */
+router.post('/auto-propose', (req: Request, res: Response) => {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({ error: 'Authorization header with Bearer token is required' });
@@ -20,33 +43,43 @@ router.post('/propose', (req: Request, res: Response) => {
         return res.status(403).json({ error: 'Invalid authentication key' });
     }
 
-    const { recipientId, message } = req.body as { recipientId: string; message: string };
-
+    const { recipientId, potSharePercent, gameId } = req.body as { recipientId: string; potSharePercent: number; gameId: string };
     if (!recipientId || typeof recipientId !== 'string' || !playerExists(recipientId)) {
         return res.status(400).json({ error: 'recipientId is required and must belong to an existing player' });
     }
-    if (!message || typeof message !== 'string') {
-        return res.status(400).json({ error: 'message is required and must be a string' });
+    if (!Number.isFinite(potSharePercent) || potSharePercent <= 0 || potSharePercent > 100) {
+        return res.status(400).json({ error: 'potSharePercent must be in (0, 100]' });
     }
+    const game = getGame(gameId);
+    if (!game) return res.status(404).json({ error: 'game not found' });
+
+    // Find recipient hint from activities
+    const activities = listGameActivities(gameId);
+    const rec = activities.find(a => a.playerId === recipientId);
+    const hint = rec?.hint || 'warm';
+    const message = `I have a ${hint} clue. Share the number for ${potSharePercent}% pot share?`;
 
     const newDeal: Deal = {
         dealId: `deal_` + cryptoRandomId(),
+        gameId,
         senderId,
         recipientId,
         message,
+        potSharePercent,
         status: 'pending',
         timestamp: Date.now(),
     };
 
     createDeal(newDeal);
-    res.status(201).json({ status: 'Deal proposed successfully', dealId: newDeal.dealId });
+    res.status(201).json({ status: 'Deal proposed successfully', dealId: newDeal.dealId, message });
 });
 
 /**
- * @route GET /coordination/proposals
- * Retrieves all pending deal proposals for the authenticated player.
+ * @route POST /coordination/accept
+ * Recipient accepts a deal; grants permission for sender to view their guesses for gameId.
+ * Body: { dealId }
  */
-router.get('/proposals', (req: Request, res: Response) => {
+router.post('/accept', (req: Request, res: Response) => {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({ error: 'Authorization header with Bearer token is required' });
@@ -57,66 +90,40 @@ router.get('/proposals', (req: Request, res: Response) => {
         return res.status(403).json({ error: 'Invalid authentication key' });
     }
 
-    const proposals = getPendingDealsForRecipient(recipientId);
-    res.status(200).json({ proposals });
-});
-
-/**
- * @route POST /coordination/respond
- * Responds to a deal proposal.
- */
-router.post('/respond', (req: Request, res: Response) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'Authorization header with Bearer token is required' });
-    }
-    const key = authHeader.split(' ')[1];
-    const recipientId = getPlayerIdByKey(key);
-    if (!recipientId) {
-        return res.status(403).json({ error: 'Invalid authentication key' });
-    }
-
-    const { dealId, response } = req.body as { dealId: string; response: 'accept' | 'reject' };
-
-    if (!dealId || !['accept', 'reject'].includes(response)) {
-        return res.status(400).json({ error: 'dealId and a valid response ("accept" or "reject") are required' });
-    }
-
+    const { dealId } = req.body as { dealId: string };
+    if (!dealId) return res.status(400).json({ error: 'dealId is required' });
     const deal = getDeal(dealId);
     if (!deal || deal.recipientId !== recipientId) {
-        return res.status(403).json({ error: 'Deal not found or you are not the recipient' });
+        return res.status(404).json({ error: 'deal not found or not authorized' });
     }
     if (deal.status !== 'pending') {
-        return res.status(400).json({ error: 'This deal has already been resolved' });
+        return res.status(400).json({ error: 'deal already resolved' });
     }
 
-    const updatedDeal = updateDealStatus(dealId, response === 'accept' ? 'accepted' : 'rejected');
-    res.status(200).json({ status: `Deal ${response === 'accept' ? 'accepted' : 'rejected'}`, deal: updatedDeal });
+    updateDealStatus(dealId, 'accepted');
+    // Grant permission: recipient authorizes sender to view recipient's guesses
+    grantSharePermission(deal.gameId, recipientId, deal.senderId);
+
+    res.status(200).json({ status: 'accepted', dealId });
 });
 
 /**
- * @route GET /coordination/deal/:dealId
- * Retrieves the status of a specific deal.
+ * @route GET /coordination/pending-deals
+ * Fetches all pending deals for the authenticated player.
  */
-router.get('/deal/:dealId', (req: Request, res: Response) => {
+router.get('/pending-deals', (req: Request, res: Response) => {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({ error: 'Authorization header with Bearer token is required' });
     }
     const key = authHeader.split(' ')[1];
-    const requesterId = getPlayerIdByKey(key);
-    if (!requesterId) {
+    const playerId = getPlayerIdByKey(key);
+    if (!playerId) {
         return res.status(403).json({ error: 'Invalid authentication key' });
     }
 
-    const { dealId } = req.params;
-    const deal = getDeal(dealId);
-
-    if (!deal || (deal.senderId !== requesterId && deal.recipientId !== requesterId)) {
-        return res.status(403).json({ error: 'Deal not found or you are not part of this deal' });
-    }
-
-    res.status(200).json({ deal });
+    const pendingDeals = getPendingDealsForRecipient(playerId);
+    res.status(200).json({ pendingDeals });
 });
 
 export default router;

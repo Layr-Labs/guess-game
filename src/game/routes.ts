@@ -6,8 +6,52 @@ import { encryptJSON, decryptJSON, cryptoRandomId } from '../crypto';
 import { getBalance, addToBalance, subtractFromBalance } from '../wallet/state';
 import { getPlayerIdByKey } from '../player/state';
 import { sealingKey } from '../config';
+import { getOutgoingShares } from '../coordination/state';
 
 const router = Router();
+
+function distributeRevenueGraph(gameId: string, rootWinnerId: string, totalAmount: number) {
+    // DFS with cycle protection; clamp outgoing percentages per node to 100%
+    const paid: Record<string, number> = {};
+    const visiting = new Set<string>();
+
+    function dfs(nodeId: string, amount: number) {
+        if (amount <= 0) return;
+        // Prevent cycles: if re-entering, pay to node and stop
+        if (visiting.has(nodeId)) {
+            paid[nodeId] = (paid[nodeId] || 0) + amount;
+            return;
+        }
+        visiting.add(nodeId);
+
+        const edges = getOutgoingShares(gameId, nodeId);
+        let totalPct = 0;
+        for (const e of edges) totalPct += Math.max(0, Math.min(100, e.percent));
+        totalPct = Math.min(totalPct, 100);
+
+        let allocated = 0;
+        if (totalPct > 0) {
+            for (const e of edges) {
+                const pct = Math.max(0, Math.min(100, e.percent));
+                if (pct === 0) continue;
+                const share = Math.floor((amount * pct) / 100);
+                if (share > 0) {
+                    dfs(e.recipientId, share);
+                    allocated += share;
+                }
+            }
+        }
+        const remainder = Math.max(0, amount - allocated);
+        if (remainder > 0) paid[nodeId] = (paid[nodeId] || 0) + remainder;
+        visiting.delete(nodeId);
+    }
+
+    dfs(rootWinnerId, totalAmount);
+    // Apply payouts
+    for (const [playerId, amt] of Object.entries(paid)) {
+        if (amt > 0) addToBalance(playerId, amt);
+    }
+}
 
 /**
  * Finalizes a game by finding the guess closest to the target number.
@@ -24,7 +68,7 @@ function finalizeByClosestGuess(game: Game) {
     // Decrypt all sealed guesses to find the closest one.
     for (const rec of game.guesses) {
         try {
-            const { playerId, guess } = decryptJSON<{ playerId: string; guess: number }>(rec.sealed, sealingKey);
+            const { playerId, guess } = decryptJSON(rec.sealed, sealingKey) as { playerId: string; guess: number };
             const dist = Math.abs(guess - target);
             if (dist < bestDistance) {
                 bestDistance = dist;
@@ -40,12 +84,12 @@ function finalizeByClosestGuess(game: Game) {
     game.winners = winners;
     game.numParticipants = game.guesses.length;
 
-    // Distribute the pot to the winner(s)
+    // Distribute the pot across winners using transitive revenue sharing
     if (winners.length > 0) {
-        const pot = game.guesses.length * game.guessFee;
-        const prizePerWinner = pot / winners.length;
-        for (const winnerId of winners) {
-            addToBalance(winnerId, prizePerWinner);
+        const basePot = game.guesses.length * game.guessFee;
+        const perWinner = basePot / winners.length;
+        for (const w of winners) {
+            distributeRevenueGraph(game.id, w, Math.floor(perWinner));
         }
     }
 }
@@ -157,23 +201,18 @@ router.post('/:id/guess', (req: Request, res: Response) => {
         game.winners = [playerId];
         game.numParticipants = game.guesses.length + 1; // Include the winner
 
-        // Distribute pot to the winner
-        const pot = (game.guesses.length + 1) * game.guessFee;
-        addToBalance(playerId, pot);
+        const basePot = (game.guesses.length + 1) * game.guessFee;
+        distributeRevenueGraph(game.id, playerId, basePot);
 
-        res.status(200).json({ correct: true, message: "You guessed correctly!", prize: pot });
+        res.status(200).json({ correct: true, message: "You guessed correctly!" });
     } else {
         // If guess is wrong, provide a hint and store it for potential "closest guess" win.
         const distance = Math.abs(guess - game.target);
         const range = game.max - game.min;
-        let hint = 'cold';
-        // Handle range of 0 to avoid division by zero
+        let hint: 'hot' | 'warm' | 'cold' = 'cold';
         if (range > 0) {
-            if (distance / range <= 0.10) {
-                hint = 'hot';
-            } else if (distance / range <= 0.25) {
-                hint = 'warm';
-            }
+            if (distance / range <= 0.10) hint = 'hot';
+            else if (distance / range <= 0.25) hint = 'warm';
         }
 
         const sealed = encryptJSON({ playerId, guess }, sealingKey);
@@ -210,7 +249,6 @@ router.get('/:id/status', (req: Request, res: Response) => {
         min: game.min,
         max: game.max,
         winners: game.winners ?? [], // Winners are revealed in the status
-        guessFee: game.guessFee,
     });
 });
 

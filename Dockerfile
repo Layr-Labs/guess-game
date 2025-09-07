@@ -1,13 +1,18 @@
-FROM node:18-alpine
+FROM node:20-alpine
 
 WORKDIR /app
 
-COPY package.json ./
+# Install dependencies including dev (needed for ts-node)
+COPY package*.json ./
 RUN npm install
 
-COPY src/ ./src/
+# App sources
 COPY tsconfig.json ./
+COPY src/ ./src/
+COPY public/ ./public/
 
-RUN npm run build
+EXPOSE 3000
 
-CMD ["npm", "start"]
+USER node
+
+CMD ["npx", "ts-node", "src/index.ts"]

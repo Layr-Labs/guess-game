@@ -8,71 +8,139 @@
 </head>
 <body>
     <div class="container">
-        <h1>Private Number Guessing Game</h1>
+        <h1>🎯 Private Number Guessing Game</h1>
+        <p class="subtitle">A secure, privacy-preserving game where you guess numbers and coordinate with others!</p>
 
-        <div id="registration-section">
-            <h2>Register Player</h2>
-            <input type="text" id="playerId-register" placeholder="Enter Player ID">
-            <button id="register-btn">Register</button>
-            <button id="copy-key-btn" type="button">Copy Key</button>
-            <div id="player-key-display"></div>
+        <!-- Step 1: Registration -->
+        <div class="step-section" id="registration-section">
+            <div class="step-header">
+                <span class="step-number">1</span>
+                <h2>Get Started - Register Player</h2>
+            </div>
+            <p class="section-desc">First, create your player account and get your secret key. You'll need this key for all actions.</p>
+            <div class="input-group">
+                <input type="text" id="playerId-register" placeholder="Choose a unique player name (e.g., alice123)">
+                <button id="register-btn">Register Player</button>
+                <button id="copy-key-btn" type="button" title="Copy your secret key">📋 Copy Key</button>
+            </div>
+            <div id="player-key-display" class="result-display"></div>
         </div>
 
-        <div id="wallet-section">
-            <h2>Wallet</h2>
-            <input type="text" id="playerId-wallet" placeholder="Your Player ID">
-            <button id="balance-btn">Check Balance</button>
-            <input type="number" id="mint-amount" placeholder="Amount to Mint" value="100">
-            <button id="mint-btn">Mint Funds</button>
-            <div id="balance-display"></div>
+        <!-- Step 2: Wallet -->
+        <div class="step-section" id="wallet-section">
+            <div class="step-header">
+                <span class="step-number">2</span>
+                <h2>Fund Your Wallet</h2>
+            </div>
+            <p class="section-desc">Get some virtual currency to play. You'll need funds to guess in games.</p>
+            <div class="input-group">
+                <input type="text" id="playerId-wallet" placeholder="Your Player ID">
+                <button id="balance-btn">Check Balance</button>
+                <input type="number" id="mint-amount" placeholder="Amount to add" value="100" min="1">
+                <button id="mint-btn">Get Free Funds</button>
+            </div>
+            <div id="balance-display" class="result-display"></div>
         </div>
 
-        <div id="game-section">
-            <h2>Game Controls</h2>
-            <input type="number" id="game-min" placeholder="Min Number" value="1">
-            <input type="number" id="game-max" placeholder="Max Number" value="100">
-            <input type="number" id="game-fee" placeholder="Guess Fee" value="10">
-            <input type="number" id="game-deadline" placeholder="Deadline (seconds)" value="120">
-            <button id="create-game-btn">Create Game</button>
-            <div id="game-info-display"></div>
+        <!-- Step 3: Create Game -->
+        <div class="step-section" id="game-section">
+            <div class="step-header">
+                <span class="step-number">3</span>
+                <h2>Create a New Game</h2>
+            </div>
+            <p class="section-desc">Set up a guessing game with a secret number between your chosen range.</p>
+            <div class="input-group">
+                <label>Number Range:</label>
+                <input type="number" id="game-min" placeholder="Min" value="1" min="0">
+                <input type="number" id="game-max" placeholder="Max" value="100" min="1">
+            </div>
+            <div class="input-group">
+                <label>Game Rules:</label>
+                <input type="number" id="game-fee" placeholder="Cost per guess" value="10" min="0">
+                <input type="number" id="game-deadline" placeholder="Time limit (seconds)" value="120" min="10">
+            </div>
+            <button id="create-game-btn">🎮 Create Game</button>
+            <div id="game-info-display" class="result-display"></div>
         </div>
 
-        <div id="guess-section">
-            <h2>Make a Guess</h2>
-            <input type="text" id="game-id-guess" placeholder="Game ID">
-            <input type="text" id="playerId-guess" placeholder="Your Player ID">
-            <input type="password" id="player-key-guess" placeholder="Your Secret Key">
-            <button id="use-saved-creds-btn" type="button">Use Saved Credentials</button>
-            <input type="number" id="player-guess" placeholder="Your Guess">
-            <button id="guess-btn">Submit Guess</button>
-            <div id="guess-result-display"></div>
+        <!-- Step 4: Play -->
+        <div class="step-section" id="guess-section">
+            <div class="step-header">
+                <span class="step-number">4</span>
+                <h2>Play - Make Your Guess</h2>
+            </div>
+            <p class="section-desc">Guess the secret number! Get hints (hot/warm/cold) to help you.</p>
+            <div class="input-group">
+                <input type="text" id="game-id-guess" placeholder="Game ID (from game creation)">
+                <input type="text" id="playerId-guess" placeholder="Your Player ID">
+                <input type="password" id="player-key-guess" placeholder="Your Secret Key">
+                <button id="use-saved-creds-btn" type="button" title="Fill from saved">📝 Use Saved</button>
+            </div>
+            <div class="input-group">
+                <input type="number" id="player-guess" placeholder="Enter your guess">
+                <button id="guess-btn">🎲 Submit Guess</button>
+            </div>
+            <div id="guess-result-display" class="result-display"></div>
         </div>
 
-        <div id="status-section">
-            <h2>Game Status</h2>
-            <input type="text" id="game-id-status" placeholder="Game ID">
-            <button id="status-btn">Check Status</button>
-            <div id="status-display"></div>
+        <!-- Step 5: Check Status -->
+        <div class="step-section" id="status-section">
+            <div class="step-header">
+                <span class="step-number">5</span>
+                <h2>Check Game Results</h2>
+            </div>
+            <p class="section-desc">See if the game has ended and who won!</p>
+            <div class="input-group">
+                <input type="text" id="game-id-status" placeholder="Game ID">
+                <button id="status-btn">📊 Check Status</button>
+            </div>
+            <div id="status-display" class="result-display"></div>
         </div>
 
-        <div id="coordination-section">
-            <h2>Coordination & Deals</h2>
-            <input type="text" id="deal-recipient-id" placeholder="Recipient Player ID">
-            <input type="text" id="deal-message" placeholder="do you want warm or cold or hot number for 10% pot share?">
-            <button id="propose-deal-btn">Propose Deal</button>
-            <div id="proposal-result-display"></div>
+        <!-- Optional: Coordination -->
+        <div class="step-section" id="coordination-section">
+            <div class="step-header">
+                <span class="step-number">🎯</span>
+                <h2>Advanced: Coordinate with Others</h2>
+            </div>
+            <p class="section-desc">Discover other players and make deals to share hints for a cut of the pot.</p>
 
-            <h3>My Pending Proposals</h3>
-            <input type="password" id="my-player-key" placeholder="Enter Your Secret Key to Check">
-            <button id="use-saved-key-coord-btn" type="button">Use Saved Key</button>
-            <button id="check-proposals-btn">Check My Proposals</button>
-            <div id="proposals-display"></div>
+            <h4>🔍 Discover Players & Hints</h4>
+            <div class="input-group">
+                <button id="list-players-btn" type="button">👥 List All Players</button>
+                <input type="text" id="game-id-activities" placeholder="Game ID to see hints">
+                <button id="load-activities-btn" type="button">🔥 Load Player Hints</button>
+            </div>
+            <div id="players-display" class="result-display"></div>
+            <div id="activities-display" class="result-display"></div>
 
-            <h3>Respond to a Proposal</h3>
-            <input type="text" id="respond-deal-id" placeholder="Deal ID to Respond To">
-            <button id="accept-deal-btn">Accept</button>
-            <button id="reject-deal-btn">Reject</button>
-            <div id="response-display"></div>
+            <h4>🤝 Propose a Deal</h4>
+            <p class="small-text">Offer to share your hint with another player for a percentage of their winnings.</p>
+            <div class="input-group">
+                <input type="text" id="deal-recipient-id" placeholder="Player to propose to">
+                <input type="text" id="deal-game-id" placeholder="Game ID">
+                <input type="number" id="deal-pot-share" placeholder="Your cut %" value="50" min="1" max="99">
+                <input type="password" id="my-player-key" placeholder="Your Secret Key">
+                <button id="use-saved-key-coord-btn" type="button" title="Use saved key">🔑 Use Saved</button>
+                <button id="propose-deal-btn">💼 Propose Deal</button>
+            </div>
+            <div id="proposal-result-display" class="result-display"></div>
+
+            <h4>📨 Pending Deals</h4>
+            <div class="input-group">
+                <button id="fetch-deals-btn" type="button">🔄 Fetch My Deals</button>
+                <button id="start-auto-fetch-btn" type="button">▶️ Auto Fetch (5s)</button>
+                <button id="stop-auto-fetch-btn" type="button" style="display:none">⏹️ Stop Auto Fetch</button>
+            </div>
+            <div id="pending-deals-display" class="result-display"></div>
+
+            <h4>✅ Accept a Deal</h4>
+            <p class="small-text">If someone proposed a deal to you, paste the deal ID here to accept.</p>
+            <div class="input-group">
+                <input type="text" id="respond-deal-id" placeholder="Paste Deal ID to accept">
+                <button id="accept-deal-btn">✨ Accept Deal</button>
+            </div>
+            <div id="response-display" class="result-display"></div>
         </div>
 
     </div>

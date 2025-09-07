@@ -54,58 +54,120 @@ document.addEventListener('DOMContentLoaded', () => {
     function displayResult(elementId, data) {
         const el = document.getElementById(elementId);
         if (!el) return;
-        if (data.error) { el.textContent = `Error: ${data.error}`; return; }
-        // Special renderers
-        if (data.proposals) { return renderProposals(elementId, data.proposals); }
-        if (data.gameId && data.joinDeadline) { return renderGameInfo(elementId, data); }
-        if (Array.isArray(data.winners) || typeof data.finalized === 'boolean') { return renderGameStatus(elementId, data); }
-        if (data.correct !== undefined) { return renderGuessResult(elementId, data); }
-        el.textContent = JSON.stringify(data, null, 2);
+
+        // Clear previous content and classes
+        el.className = 'result-display';
+        el.textContent = '';
+
+        if (data.error) {
+            el.classList.add('error');
+            el.textContent = `❌ ${data.error}`;
+            return;
+        }
+
+        // Handle different response types
+        if (Array.isArray(data.players)) {
+            el.innerHTML = `<strong>👥 Registered Players:</strong><br/>${data.players.length > 0 ? data.players.join(', ') : 'No players registered yet'}`;
+        } else if (Array.isArray(data.activities)) {
+            renderActivities(elementId, data.activities);
+        } else if (Array.isArray(data.pendingDeals)) {
+            renderPendingDeals(elementId, data.pendingDeals);
+        } else if (data.gameId && data.joinDeadline) {
+            renderGameInfo(elementId, data);
+        } else if (data.correct !== undefined) {
+            renderGuessResult(elementId, data);
+        } else if (Array.isArray(data.winners) || typeof data.finalized === 'boolean') {
+            renderGameStatus(elementId, data);
+        } else if (data.balance !== undefined) {
+            el.innerHTML = `💰 <strong>Balance:</strong> ${data.balance} coins`;
+        } else if (data.key) {
+            el.innerHTML = `🔑 <strong>Secret Key:</strong> <code>${data.key}</code><br/><small style="color: #e74c3c;">⚠️ Save this key securely!</small>`;
+        } else if (data.status) {
+            el.classList.add('success');
+            el.textContent = `✅ ${data.status}`;
+        } else {
+            el.textContent = JSON.stringify(data, null, 2);
+        }
     }
 
     function renderGuessResult(elementId, data) {
         const el = document.getElementById(elementId);
         if (!el) return;
         if (data.correct) {
-            el.innerHTML = `Correct! ${data.message || ''} Prize: ${data.prize || 0}`;
+            el.innerHTML = `🎉 Correct! ${data.message || ''} ${data.prize ? `Prize: ${data.prize} coins` : ''}`;
             showToast('You won!');
         } else {
             const hintClass = data.hint ? `hint-${data.hint}` : '';
-            el.innerHTML = `Incorrect guess. <span class="hint-display ${hintClass}">${(data.hint || '').toUpperCase()}</span>`;
+            el.innerHTML = `❌ Incorrect guess. <span class="hint-display ${hintClass}">${(data.hint || 'NO HINT').toUpperCase()}</span>`;
         }
     }
 
-    function renderProposals(elementId, proposals) {
+    function renderActivities(elementId, activities) {
         const el = document.getElementById(elementId);
         if (!el) return;
-        if (!proposals || proposals.length === 0) { el.textContent = 'No pending proposals.'; return; }
-        let html = '';
-        proposals.forEach(deal => {
-            const statusClass = `status-${deal.status}`;
-            html += `
+
+        if (!activities || activities.length === 0) {
+            el.textContent = 'No player activities found for this game.';
+            return;
+        }
+
+        el.innerHTML = `<strong>🔥 Player Hints:</strong><br/>`;
+        activities.forEach(activity => {
+            const hintClass = activity.hint ? `hint-${activity.hint}` : '';
+            el.innerHTML += `• ${activity.playerId}: <span class="hint-display ${hintClass}">${activity.hint.toUpperCase()}</span><br/>`;
+        });
+    }
+
+    function renderPendingDeals(elementId, deals) {
+        const el = document.getElementById(elementId);
+        if (!el) return;
+
+        if (!deals || deals.length === 0) {
+            el.textContent = 'No pending deals.';
+            return;
+        }
+
+        el.innerHTML = `<strong>📨 Pending Deal Proposals:</strong><br/>`;
+        deals.forEach(deal => {
+            el.innerHTML += `
                 <div class="deal-card">
-                    <div class="deal-header">
-                        <strong>From: ${deal.senderId}</strong>
-                        <span class="status-badge ${statusClass}">${deal.status}</span>
-                    </div>
-                    <div class="deal-message">"${deal.message}"</div>
-                    <small>Deal ID: <code>${deal.dealId}</code></small><br/>
-                    <small>${new Date(deal.timestamp).toLocaleString()}</small>
+                    <div><strong>From:</strong> ${deal.senderId}</div>
+                    <div><strong>Game:</strong> ${deal.gameId}</div>
+                    <div><strong>Message:</strong> ${deal.message}</div>
+                    <div><strong>Pot Share:</strong> ${deal.potSharePercent}%</div>
+                    <button onclick="acceptDeal('${deal.dealId}')">
+                        ✅ Accept Deal
+                    </button>
                 </div>
             `;
         });
-        el.innerHTML = html;
     }
+
+    // Global function for accepting deals from the deal display
+    window.acceptDeal = function(dealId) {
+        document.getElementById('respond-deal-id').value = dealId;
+        document.getElementById('accept-deal-btn').click();
+    };
 
     function renderGameInfo(elementId, data) {
         const el = document.getElementById(elementId);
         if (!el) return;
-        el.innerHTML = `Game Created!<br/>ID: <code>${data.gameId}</code><br/>Deadline: ${new Date(data.joinDeadline).toLocaleString()}<br/>Guess Fee: ${data.guessFee}`;
-        // Save last game id to convenience fields
+        const fee = (data.guessFee ?? 0);
+        el.innerHTML = `
+            🎮 <strong>Game Created Successfully!</strong><br/>
+            🆔 <strong>ID:</strong> <code>${data.gameId}</code><br/>
+            ⏰ <strong>Deadline:</strong> ${new Date(data.joinDeadline).toLocaleString()}<br/>
+            💰 <strong>Guess Fee:</strong> ${fee} coins
+        `;
+        el.classList.add('success');
+
+        // Auto-fill game IDs in other sections
         const gidGuess = document.getElementById('game-id-guess');
         const gidStatus = document.getElementById('game-id-status');
+        const gidActivities = document.getElementById('game-id-activities');
         if (gidGuess) gidGuess.value = data.gameId;
         if (gidStatus) gidStatus.value = data.gameId;
+        if (gidActivities) gidActivities.value = data.gameId;
     }
 
     function renderGameStatus(elementId, data) {
@@ -113,14 +175,20 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!el) return;
         const isFinalized = !!data.finalized;
         const winners = (data.winners || []).join(', ');
+
         el.innerHTML = `
-            Game ID: <code>${data.gameId}</code><br/>
-            Status: ${isFinalized ? 'Finalized' : 'Active'}<br/>
-            Participants: ${data.numSubmissions}<br/>
-            Range: ${data.min} - ${data.max}<br/>
-            Deadline: ${new Date(data.joinDeadline).toLocaleString()}<br/>
-            ${isFinalized && winners ? ('Winners: ' + winners) : ''}
+            📊 <strong>Game Status</strong><br/>
+            🆔 <strong>ID:</strong> <code>${data.gameId}</code><br/>
+            📈 <strong>Status:</strong> ${isFinalized ? '🏆 Finalized' : '⏳ Active'}<br/>
+            👥 <strong>Participants:</strong> ${data.numSubmissions}<br/>
+            🎯 <strong>Range:</strong> ${data.min} - ${data.max}<br/>
+            ⏰ <strong>Deadline:</strong> ${new Date(data.joinDeadline).toLocaleString()}<br/>
+            ${isFinalized && winners ? ('🏆 <strong>Winners:</strong> ' + winners) : ''}
         `;
+
+        if (isFinalized) {
+            el.classList.add('success');
+        }
     }
 
     // --- Registration ---
@@ -203,32 +271,75 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('Saved key filled');
     });
 
-    document.getElementById('propose-deal-btn').addEventListener('click', async () => {
-        const recipientId = document.getElementById('deal-recipient-id').value;
-        const message = document.getElementById('deal-message').value || 'do you want warm or cold or hot number for 10% pot share?';
-        const key = document.getElementById('my-player-key').value;
-        const result = await apiCall('/coordination/propose', 'POST', { recipientId, message }, key);
-        displayResult('proposal-result-display', result);
+    document.getElementById('list-players-btn').addEventListener('click', async () => {
+        const result = await apiCall('/coordination/players');
+        displayResult('players-display', result);
     });
 
-    document.getElementById('check-proposals-btn').addEventListener('click', async () => {
+    document.getElementById('load-activities-btn').addEventListener('click', async () => {
+        const gameId = document.getElementById('game-id-activities').value;
+        const result = await apiCall(`/coordination/${gameId}/activities`);
+        displayResult('activities-display', result);
+    });
+
+    document.getElementById('propose-deal-btn').addEventListener('click', async () => {
+        const recipientId = document.getElementById('deal-recipient-id').value;
+        const gameId = document.getElementById('deal-game-id').value || document.getElementById('game-id-guess').value;
+        const potSharePercent = parseInt(document.getElementById('deal-pot-share').value, 10) || 50;
         const key = document.getElementById('my-player-key').value;
-        const result = await apiCall('/coordination/proposals', 'GET', null, key);
-        displayResult('proposals-display', result);
+        const result = await apiCall('/coordination/auto-propose', 'POST', { recipientId, potSharePercent, gameId }, key);
+        displayResult('proposal-result-display', result);
     });
 
     document.getElementById('accept-deal-btn').addEventListener('click', async () => {
         const dealId = document.getElementById('respond-deal-id').value;
         const key = document.getElementById('my-player-key').value;
-        const result = await apiCall('/coordination/respond', 'POST', { dealId, response: 'accept' }, key);
+        const result = await apiCall('/coordination/accept', 'POST', { dealId }, key);
         displayResult('response-display', result);
+        // Refresh pending deals after accepting
+        if (!result.error) {
+            setTimeout(fetchPendingDeals, 500);
+        }
     });
 
-    document.getElementById('reject-deal-btn').addEventListener('click', async () => {
-        const dealId = document.getElementById('respond-deal-id').value;
-        const key = document.getElementById('my-player-key').value;
-        const result = await apiCall('/coordination/respond', 'POST', { dealId, response: 'reject' }, key);
-        displayResult('response-display', result);
+    // --- Pending Deals Fetching ---
+    let autoFetchInterval = null;
+
+    document.getElementById('fetch-deals-btn').addEventListener('click', fetchPendingDeals);
+
+    document.getElementById('start-auto-fetch-btn').addEventListener('click', () => {
+        if (autoFetchInterval) return;
+
+        autoFetchInterval = setInterval(fetchPendingDeals, 5000);
+        document.getElementById('start-auto-fetch-btn').style.display = 'none';
+        document.getElementById('stop-auto-fetch-btn').style.display = 'inline-block';
+        showToast('Auto-fetch started (every 5 seconds)');
+        fetchPendingDeals(); // Initial fetch
     });
+
+    document.getElementById('stop-auto-fetch-btn').addEventListener('click', () => {
+        if (autoFetchInterval) {
+            clearInterval(autoFetchInterval);
+            autoFetchInterval = null;
+        }
+        document.getElementById('start-auto-fetch-btn').style.display = 'inline-block';
+        document.getElementById('stop-auto-fetch-btn').style.display = 'none';
+        showToast('Auto-fetch stopped');
+    });
+
+    async function fetchPendingDeals() {
+        const key = storage.get('playerKey');
+        if (!key) {
+            displayResult('pending-deals-display', { error: 'No authentication key found. Please register first.' });
+            return;
+        }
+
+        const result = await apiCall('/coordination/pending-deals', 'GET', null, key);
+        if (result.pendingDeals !== undefined) {
+            renderPendingDeals('pending-deals-display', result.pendingDeals);
+        } else {
+            displayResult('pending-deals-display', result);
+        }
+    }
 
 });
