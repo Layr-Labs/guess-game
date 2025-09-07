@@ -87,34 +87,36 @@ The `public/` app provides a minimal UI to interact with these endpoints.
 ## Architecture Diagram
 
 ```mermaid
-graph TD
-  A[Player Browser UI] -->|Register /player/register| B[Express API (TEE)]
-  B -->|Create player key| A
+graph TD;
+  A[Browser UI];
+  B[Express API TEE];
+  WB[Wallet Balances];
+  GS[Games + Sealed Guesses<br/>AES-256-GCM];
 
-  A -->|Mint /wallet/mint| B
-  B -->|Update balance| WB[(Wallet Balances)]
+  A -->|Register /player/register| B;
+  B -->|Create player key| A;
 
-  A -->|Create Game /game/create| B
-  B -->|crypto.randomInt target| GS[(Games + Sealed Guesses \nAES-256-GCM)]
+  A -->|Mint /wallet/mint| B;
+  B -->|Update balance| WB;
 
-  A -->|Guess /game/:id/guess \n(Bearer key)| B
-  B -->|Charge fee & store \nsealed guess| GS
-  B -->|Hint hot/warm/cold| A
+  A -->|Create /game/create| B;
+  B -->|Generate target| GS;
 
-  A -->|Status /game/:id/status| B
-  B -->|Auto-finalize at deadline \n(closest guess)| A
-  B -->|Distribute pot via DFS \n(transitive deals)| WB
+  A -->|Guess /game/:id/guess (Bearer)| B;
+  B -->|Charge fee + seal guess| GS;
+  B -->|Hint hot/warm/cold| A;
+
+  A -->|Status /game/:id/status| B;
+  B -->|Auto-finalize closest| A;
+  B -->|Distribute pot (DFS)| WB;
 
   subgraph Coordination
-    A -->|List players \n/coordination/players| B
-    A -->|View activities \n/coordination/:id/activities| B
-    A -->|Auto-propose deal \n/coordination/auto-propose| B
-    A -->|Fetch pending \n/coordination/pending-deals| B
-    A -->|Accept deal \n/coordination/accept| B
-    B -->|Grant share permission| GS
+    A -->|List /coordination/players| B;
+    A -->|Activities /coordination/:id/activities| B;
+    A -->|Propose /coordination/auto-propose| B;
+    A -->|Pending /coordination/pending-deals| B;
+    A -->|Accept /coordination/accept| B;
+    B -->|Grant share permission| GS;
   end
-
-  classDef store fill:#f8f9fa,stroke:#bbb,color:#333;
-  class WB,GS store;
 ```
 
