@@ -102,13 +102,13 @@ graph TD;
   A -->|Create /game/create| B;
   B -->|Generate target| GS;
 
-  A -->|Guess /game/:id/guess (Bearer)| B;
+  A -->|Guess /game/:id/guess Bearer key| B;
   B -->|Charge fee + seal guess| GS;
   B -->|Hint hot/warm/cold| A;
 
   A -->|Status /game/:id/status| B;
   B -->|Auto-finalize closest| A;
-  B -->|Distribute pot (DFS)| WB;
+  B -->|Distribute pot DFS| WB;
 
   subgraph Coordination
     A -->|List /coordination/players| B;
