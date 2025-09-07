@@ -74,10 +74,47 @@ TBD.
 - `POST /game/create`
 - `POST /game/:gameId/guess`
 - `GET /game/:gameId/status`
-- `POST /coordination/propose`
-- `GET /coordination/proposals`
-- `POST /coordination/respond`
+- `GET /coordination/players`
+- `GET /coordination/:gameId/activities`
+- `POST /coordination/auto-propose`
+- `GET /coordination/pending-deals`
+- `POST /coordination/accept`
 
 The `public/` app provides a minimal UI to interact with these endpoints.
 
+
+
+## Architecture Diagram
+
+```mermaid
+graph TD
+  A[Player Browser UI] -->|Register /player/register| B[Express API (TEE)]
+  B -->|Create player key| A
+
+  A -->|Mint /wallet/mint| B
+  B -->|Update balance| WB[(Wallet Balances)]
+
+  A -->|Create Game /game/create| B
+  B -->|crypto.randomInt target| GS[(Games + Sealed Guesses \nAES-256-GCM)]
+
+  A -->|Guess /game/:id/guess \n(Bearer key)| B
+  B -->|Charge fee & store \nsealed guess| GS
+  B -->|Hint hot/warm/cold| A
+
+  A -->|Status /game/:id/status| B
+  B -->|Auto-finalize at deadline \n(closest guess)| A
+  B -->|Distribute pot via DFS \n(transitive deals)| WB
+
+  subgraph Coordination
+    A -->|List players \n/coordination/players| B
+    A -->|View activities \n/coordination/:id/activities| B
+    A -->|Auto-propose deal \n/coordination/auto-propose| B
+    A -->|Fetch pending \n/coordination/pending-deals| B
+    A -->|Accept deal \n/coordination/accept| B
+    B -->|Grant share permission| GS
+  end
+
+  classDef store fill:#f8f9fa,stroke:#bbb,color:#333;
+  class WB,GS store;
+```
 
