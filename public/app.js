@@ -204,14 +204,40 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('copy-key-btn').addEventListener('click', async () => {
-        const display = document.getElementById('player-key-display');
-        try {
-            const payload = JSON.parse(display.textContent || '{}');
-            if (payload.key) {
-                await navigator.clipboard.writeText(payload.key);
+        // Priority: localStorage -> visible inputs -> rendered code tag -> JSON fallback
+        let key = storage.get('playerKey');
+
+        if (!key) {
+            const keyGuess = document.getElementById('player-key-guess');
+            const keyCoord = document.getElementById('my-player-key');
+            key = (keyGuess && keyGuess.value) || (keyCoord && keyCoord.value) || '';
+        }
+
+        if (!key) {
+            const display = document.getElementById('player-key-display');
+            const code = display ? display.querySelector('code') : null;
+            if (code && code.textContent) key = code.textContent.trim();
+        }
+
+        if (!key) {
+            // Fallback to old JSON structure if present
+            try {
+                const display = document.getElementById('player-key-display');
+                const payload = JSON.parse((display && display.textContent) || '{}');
+                if (payload && payload.key) key = payload.key;
+            } catch {}
+        }
+
+        if (key) {
+            try {
+                await navigator.clipboard.writeText(key);
                 showToast('Key copied to clipboard');
+            } catch {
+                showToast('Copy failed');
             }
-        } catch { showToast('Nothing to copy'); }
+        } else {
+            showToast('No key found to copy');
+        }
     });
 
     // --- Wallet ---
