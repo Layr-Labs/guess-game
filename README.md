@@ -12,14 +12,13 @@ The game is a sealed number-guessing contest where players submit guesses within
 
 The app requires the following environment variables:
 
-- `MNEMONIC` (optional): Seed phrase used to derive a sealing key - automatically generated if not provided by Compute.
+- `MNEMONIC` (required): Seed phrase used to derive a sealing key - automatically generated if not provided by Compute.
 - `PORT` (optional): HTTP port, defaults to `3000`.
 
-Create a `.env` file in the project root:
+Copy the example environment file and make your changes:
 
 ```bash
-MNEMONIC="your twelve or twenty-four word phrase here"
-PORT=3000
+cp .env.example .env
 ```
 
 ## Install & Run (Local)
