@@ -3,148 +3,240 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Private Number Guessing Game</title>
+    <title>GuessX -Private Number Guessing Game</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-    <div class="container">
-        <h1>🎯 Private Number Guessing Game</h1>
-        <p class="subtitle">A secure, privacy-preserving game where you guess numbers and coordinate with others!</p>
-
-        <!-- Step 1: Registration -->
-        <div class="step-section" id="registration-section">
-            <div class="step-header">
-                <span class="step-number">1</span>
-                <h2>Get Started - Register Player</h2>
+    <div class="game-container">
+        <div class="header">
+            <h1 class="game-title">Guess<span class="accent">X</span></h1>
+            <p class="game-subtitle">Private Number Guessing Challenge</p>
+        </div>
+        
+        <!-- Progress Indicator -->
+        <div class="progress-bar">
+            <div class="progress-step active" data-step="1">
+                <i class="fas fa-user-plus"></i>
+                <span>Setup</span>
             </div>
-            <p class="section-desc">First, create your player account and get your secret key. You'll need this key for all actions.</p>
-            <div class="input-group">
-                <input type="text" id="playerId-register" placeholder="Choose a unique player name (e.g., alice123)">
-                <button id="register-btn">Register Player</button>
-                <button id="copy-key-btn" type="button" title="Copy your secret key">📋 Copy Key</button>
+            <div class="progress-step" data-step="2">
+                <i class="fas fa-coins"></i>
+                <span>Funds</span>
             </div>
-            <div id="player-key-display" class="result-display"></div>
+            <div class="progress-step" data-step="3">
+                <i class="fas fa-gamepad"></i>
+                <span>Game</span>
+            </div>
+            <div class="progress-step" data-step="4">
+                <i class="fas fa-bullseye"></i>
+                <span>Guess</span>
+            </div>
         </div>
 
-        <!-- Step 2: Wallet -->
-        <div class="step-section" id="wallet-section">
-            <div class="step-header">
-                <span class="step-number">2</span>
-                <h2>Fund Your Wallet</h2>
+        <!-- Game Steps Container -->
+        <div class="steps-container">
+            
+            <!-- Step 1: Player Setup -->
+            <div class="game-step active" id="step-1">
+                <div class="step-content">
+                    <h2><i class="fas fa-user-plus"></i> Player Setup</h2>
+                    <div class="welcome-message" id="welcome-message">
+                        <p>Welcome back! You're already registered as <strong id="existing-player-name"></strong></p>
+                        <div class="player-stats">
+                            <span class="stat"><i class="fas fa-coins"></i> <span id="current-balance">0</span> coins</span>
+                        </div>
+                    </div>
+                    <div class="registration-form" id="registration-form">
+                        <p class="step-description">Choose your player name to get started</p>
+                        <div class="input-container">
+                            <input type="text" id="playerId-register" placeholder="Enter your player name" maxlength="20">
+                            <button id="register-btn" class="btn-primary">
+                                <i class="fas fa-rocket"></i> Start Playing
+                            </button>
+                        </div>
+                    </div>
+                    <div class="step-actions">
+                        <button id="next-step-1" class="btn-next" disabled>
+                            Next Step <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
-            <p class="section-desc">Get some virtual currency to play. You'll need funds to guess in games.</p>
-            <div class="input-group">
-                <input type="text" id="playerId-wallet" placeholder="Your Player ID">
-                <button id="balance-btn">Check Balance</button>
-                <input type="number" id="mint-amount" placeholder="Amount to add" value="100" min="1">
-                <button id="mint-btn">Get Free Funds</button>
-            </div>
-            <div id="balance-display" class="result-display"></div>
-        </div>
 
-        <!-- Step 3: Create Game -->
-        <div class="step-section" id="game-section">
-            <div class="step-header">
-                <span class="step-number">3</span>
-                <h2>Create a New Game</h2>
+            <!-- Step 2: Get Funds -->
+            <div class="game-step" id="step-2">
+                <div class="step-content">
+                    <h2><i class="fas fa-coins"></i> Get Game Coins</h2>
+                    <p class="step-description">You need coins to make guesses in games</p>
+                    <div class="balance-display">
+                        <div class="balance-card">
+                            <i class="fas fa-wallet"></i>
+                            <span>Current Balance</span>
+                            <div class="balance-amount" id="balance-amount">0</div>
+                        </div>
+                    </div>
+                    <div class="fund-actions">
+                        <div class="input-container">
+                            <input type="number" id="mint-amount" placeholder="Amount" value="100" min="10" max="1000">
+                            <button id="mint-btn" class="btn-primary">
+                                <i class="fas fa-plus"></i> Get Free Coins
+                            </button>
+                        </div>
+                    </div>
+                    <div class="step-actions">
+                        <button id="prev-step-2" class="btn-prev">
+                            <i class="fas fa-arrow-left"></i> Previous
+                        </button>
+                        <button id="next-step-2" class="btn-next">
+                            Next Step <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
-            <p class="section-desc">Set up a guessing game with a secret number between your chosen range.</p>
-            <div class="input-group">
-                <label>Number Range:</label>
-                <input type="number" id="game-min" placeholder="Min" value="1" min="0">
-                <input type="number" id="game-max" placeholder="Max" value="100" min="1">
-            </div>
-            <div class="input-group">
-                <label>Game Rules:</label>
-                <input type="number" id="game-fee" placeholder="Cost per guess" value="10" min="0">
-                <input type="number" id="game-deadline" placeholder="Time limit (seconds)" value="120" min="10">
-            </div>
-            <button id="create-game-btn">🎮 Create Game</button>
-            <div id="game-info-display" class="result-display"></div>
-        </div>
 
-        <!-- Step 4: Play -->
-        <div class="step-section" id="guess-section">
-            <div class="step-header">
-                <span class="step-number">4</span>
-                <h2>Play - Make Your Guess</h2>
+            <!-- Step 3: Create or Join Game -->
+            <div class="game-step" id="step-3">
+                <div class="step-content">
+                    <h2><i class="fas fa-gamepad"></i> Game Setup</h2>
+                    <div class="game-mode-selector">
+                        <button class="mode-btn active" id="create-mode-btn">
+                            <i class="fas fa-plus-circle"></i>
+                            <span>Create New Game</span>
+                        </button>
+                        <button class="mode-btn" id="join-mode-btn">
+                            <i class="fas fa-sign-in-alt"></i>
+                            <span>Join Existing Game</span>
+                        </button>
+                    </div>
+                    
+                    <div class="game-config" id="create-game-config">
+                        <div class="config-group">
+                            <label>Number Range</label>
+                            <div class="range-inputs">
+                                <input type="number" id="game-min" value="1" min="0" placeholder="Min">
+                                <span class="range-separator">to</span>
+                                <input type="number" id="game-max" value="100" min="1" placeholder="Max">
+                            </div>
+                        </div>
+                        <div class="config-group">
+                            <label>Game Settings</label>
+                            <div class="settings-inputs">
+                                <div class="setting-item">
+                                    <i class="fas fa-coins"></i>
+                                    <input type="number" id="game-fee" value="10" min="0" placeholder="Coins per guess">
+                                </div>
+                                <div class="setting-item">
+                                    <i class="fas fa-clock"></i>
+                                    <input type="number" id="game-deadline" value="120" min="30" placeholder="Time limit (seconds)">
+                                </div>
+                            </div>
+                        </div>
+                        <button id="create-game-btn" class="btn-primary">
+                            <i class="fas fa-rocket"></i> Create Game
+                        </button>
+                    </div>
+                    
+                    <div class="game-join" id="join-game-config" style="display: none;">
+                        <div class="input-container">
+                            <input type="text" id="game-id-join" placeholder="Enter Game ID">
+                            <button id="join-game-btn" class="btn-primary">
+                                <i class="fas fa-sign-in-alt"></i> Join Game
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="step-actions">
+                        <button id="prev-step-3" class="btn-prev">
+                            <i class="fas fa-arrow-left"></i> Previous
+                        </button>
+                        <button id="next-step-3" class="btn-next" disabled>
+                            Start Playing <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
-            <p class="section-desc">Guess the secret number! Get hints (hot/warm/cold) to help you.</p>
-            <div class="input-group">
-                <input type="text" id="game-id-guess" placeholder="Game ID (from game creation)">
-                <input type="text" id="playerId-guess" placeholder="Your Player ID">
-                <input type="password" id="player-key-guess" placeholder="Your Secret Key">
-                <button id="use-saved-creds-btn" type="button" title="Fill from saved">📝 Use Saved</button>
-            </div>
-            <div class="input-group">
-                <input type="number" id="player-guess" placeholder="Enter your guess">
-                <button id="guess-btn">🎲 Submit Guess</button>
-            </div>
-            <div id="guess-result-display" class="result-display"></div>
-        </div>
 
-        <!-- Step 5: Check Status -->
-        <div class="step-section" id="status-section">
-            <div class="step-header">
-                <span class="step-number">5</span>
-                <h2>Check Game Results</h2>
+            <!-- Step 4: Play Game -->
+            <div class="game-step" id="step-4">
+                <div class="step-content">
+                    <h2><i class="fas fa-bullseye"></i> Make Your Guess</h2>
+                    <div class="game-info-card" id="current-game-info">
+                        <div class="game-header">
+                            <span class="game-id">Game: <code id="current-game-id">Loading...</code></span>
+                            <span class="game-timer" id="game-timer">
+                                <i class="fas fa-clock"></i> <span id="time-remaining">--:--</span>
+                            </span>
+                        </div>
+                        <div class="game-details">
+                            <span>Range: <strong id="game-range">-- to --</strong></span>
+                            <span>Cost: <strong id="game-cost">-- coins</strong></span>
+                        </div>
+                    </div>
+                    
+                    <div class="guess-section">
+                        <div class="guess-input-container">
+                            <input type="number" id="player-guess" placeholder="Enter your guess">
+                            <button id="guess-btn" class="btn-guess">
+                                <i class="fas fa-bullseye"></i> Submit Guess
+                            </button>
+                        </div>
+                        <div class="hint-display" id="hint-display"></div>
+                    </div>
+                    
+                    <div class="game-status" id="game-status">
+                        <button id="check-status-btn" class="btn-secondary">
+                            <i class="fas fa-sync-alt"></i> Check Game Status
+                        </button>
+                    </div>
+                    
+                    <div class="step-actions">
+                        <button id="prev-step-4" class="btn-prev">
+                            <i class="fas fa-arrow-left"></i> New Game
+                        </button>
+                        <button id="play-again-btn" class="btn-next" style="display: none;">
+                            <i class="fas fa-redo"></i> Play Again
+                        </button>
+                    </div>
+                </div>
             </div>
-            <p class="section-desc">See if the game has ended and who won!</p>
-            <div class="input-group">
-                <input type="text" id="game-id-status" placeholder="Game ID">
-                <button id="status-btn">📊 Check Status</button>
-            </div>
-            <div id="status-display" class="result-display"></div>
-        </div>
-
-        <!-- Optional: Coordination -->
-        <div class="step-section" id="coordination-section">
-            <div class="step-header">
-                <span class="step-number">🎯</span>
-                <h2>Advanced: Coordinate with Others</h2>
-            </div>
-            <p class="section-desc">Discover other players and make deals to share hints for a cut of the pot.</p>
-
-            <h4>🔍 Discover Players & Hints</h4>
-            <div class="input-group">
-                <button id="list-players-btn" type="button">👥 List All Players</button>
-                <input type="text" id="game-id-activities" placeholder="Game ID to see hints">
-                <button id="load-activities-btn" type="button">🔥 Load Player Hints</button>
-            </div>
-            <div id="players-display" class="result-display"></div>
-            <div id="activities-display" class="result-display"></div>
-
-            <h4>🤝 Propose a Deal</h4>
-            <p class="small-text">Offer to share your hint with another player for a percentage of their winnings.</p>
-            <div class="input-group">
-                <input type="text" id="deal-recipient-id" placeholder="Player to propose to">
-                <input type="text" id="deal-game-id" placeholder="Game ID">
-                <input type="number" id="deal-pot-share" placeholder="Your cut %" value="50" min="1" max="99">
-                <input type="password" id="my-player-key" placeholder="Your Secret Key">
-                <button id="use-saved-key-coord-btn" type="button" title="Use saved key">🔑 Use Saved</button>
-                <button id="propose-deal-btn">💼 Propose Deal</button>
-            </div>
-            <div id="proposal-result-display" class="result-display"></div>
-
-            <h4>📨 Pending Deals</h4>
-            <div class="input-group">
-                <button id="fetch-deals-btn" type="button">🔄 Fetch My Deals</button>
-                <button id="start-auto-fetch-btn" type="button">▶️ Auto Fetch (5s)</button>
-                <button id="stop-auto-fetch-btn" type="button" style="display:none">⏹️ Stop Auto Fetch</button>
-            </div>
-            <div id="pending-deals-display" class="result-display"></div>
-
-            <h4>✅ Accept a Deal</h4>
-            <p class="small-text">If someone proposed a deal to you, paste the deal ID here to accept.</p>
-            <div class="input-group">
-                <input type="text" id="respond-deal-id" placeholder="Paste Deal ID to accept">
-                <button id="accept-deal-btn">✨ Accept Deal</button>
-            </div>
-            <div id="response-display" class="result-display"></div>
         </div>
 
     </div>
-    <div id="toast" class="toast" style="display:none"></div>
+    
+    <!-- Game Effects and Overlays -->
+    <div id="screen-shake" class="screen-shake"></div>
+    <div id="particles-container" class="particles-container"></div>
+    <div id="win-overlay" class="win-overlay">
+        <div class="win-content">
+            <i class="fas fa-trophy"></i>
+            <h2>VICTORY!</h2>
+            <p>You guessed the number!</p>
+            <div class="confetti"></div>
+        </div>
+    </div>
+    <div id="lose-overlay" class="lose-overlay">
+        <div class="lose-content">
+            <i class="fas fa-skull-crossbones"></i>
+            <h2>GAME OVER</h2>
+            <p>Better luck next time!</p>
+        </div>
+    </div>
+    
+    <!-- Toast Notifications -->
+    <div id="toast" class="toast"></div>
+    
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <p>Loading...</p>
+        </div>
+    </div>
+    
     <script src="app.js"></script>
 </body>
 </html>
