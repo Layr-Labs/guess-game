@@ -21,14 +21,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (savedId) {
             const idWallet = document.getElementById('playerId-wallet');
             const idGuess = document.getElementById('playerId-guess');
+            const gidGlobal = document.getElementById('global-game-id');
             if (idWallet) idWallet.value = savedId;
             if (idGuess) idGuess.value = savedId;
+            if (gidGlobal && !gidGlobal.value) gidGlobal.value = storage.get('gameId') || '';
         }
         if (savedKey) {
             const keyGuess = document.getElementById('player-key-guess');
             const keyCoord = document.getElementById('my-player-key');
+            const keyGlobal = document.getElementById('global-secret-key');
             if (keyGuess) keyGuess.value = savedKey;
             if (keyCoord) keyCoord.value = savedKey;
+            if (keyGlobal) keyGlobal.value = savedKey;
         }
     })();
 
@@ -114,7 +118,8 @@ document.addEventListener('DOMContentLoaded', () => {
         el.innerHTML = `<strong>🔥 Player Hints:</strong><br/>`;
         activities.forEach(activity => {
             const hintClass = activity.hint ? `hint-${activity.hint}` : '';
-            el.innerHTML += `• ${activity.playerId}: <span class="hint-display ${hintClass}">${activity.hint.toUpperCase()}</span><br/>`;
+            const guessText = (activity.guess !== undefined) ? ` <span style="color:#8e44ad">(guess: ${activity.guess})</span>` : '';
+            el.innerHTML += `• ${activity.playerId}: <span class="hint-display ${hintClass}">${activity.hint.toUpperCase()}</span>${guessText}<br/>`;
         });
     }
 
@@ -162,10 +167,10 @@ document.addEventListener('DOMContentLoaded', () => {
         el.classList.add('success');
 
         // Auto-fill game IDs in other sections
-        const gidGuess = document.getElementById('game-id-guess');
+        const gidGlobal = document.getElementById('global-game-id');
         const gidStatus = document.getElementById('game-id-status');
         const gidActivities = document.getElementById('game-id-activities');
-        if (gidGuess) gidGuess.value = data.gameId;
+        if (gidGlobal) gidGlobal.value = data.gameId;
         if (gidStatus) gidStatus.value = data.gameId;
         if (gidActivities) gidActivities.value = data.gameId;
     }
@@ -270,29 +275,36 @@ document.addEventListener('DOMContentLoaded', () => {
         const id = storage.get('playerId');
         const key = storage.get('playerKey');
         if (id) document.getElementById('playerId-guess').value = id;
-        if (key) document.getElementById('player-key-guess').value = key;
+        if (key) {
+            document.getElementById('player-key-guess').value = key;
+            const keyGlobal = document.getElementById('global-secret-key');
+            if (keyGlobal) keyGlobal.value = key;
+        }
         showToast('Credentials filled');
     });
 
     document.getElementById('guess-btn').addEventListener('click', async () => {
-        const gameId = document.getElementById('game-id-guess').value;
+        const gameId = document.getElementById('global-game-id').value;
         const playerId = document.getElementById('playerId-guess').value;
         storage.set('playerId', playerId);
+        storage.set('gameId', gameId);
         const guess = parseInt(document.getElementById('player-guess').value, 10);
-        const result = await apiCall(`/game/${gameId}/guess`, 'POST', { playerId, guess });
+        const key = document.getElementById('global-secret-key').value || document.getElementById('player-key-guess').value;
+        const result = await apiCall(`/game/${gameId}/guess`, 'POST', { playerId, guess }, key);
         displayResult('guess-result-display', result);
     });
 
     // --- Status ---
     document.getElementById('status-btn').addEventListener('click', async () => {
-        const gameId = document.getElementById('game-id-status').value;
+        const gameId = document.getElementById('global-game-id').value;
+        storage.set('gameId', gameId);
         const result = await apiCall(`/game/${gameId}/status`);
         displayResult('status-display', result);
     });
 
     // --- Coordination ---
     document.getElementById('use-saved-key-coord-btn').addEventListener('click', () => {
-        const key = storage.get('playerKey');
+        const key = document.getElementById('global-secret-key').value || storage.get('playerKey');
         if (key) document.getElementById('my-player-key').value = key;
         showToast('Saved key filled');
     });
@@ -303,23 +315,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('load-activities-btn').addEventListener('click', async () => {
-        const gameId = document.getElementById('game-id-activities').value;
-        const result = await apiCall(`/coordination/${gameId}/activities`);
+        const gameId = document.getElementById('global-game-id').value;
+        storage.set('gameId', gameId);
+        const key = document.getElementById('global-secret-key').value || storage.get('playerKey');
+        const result = await apiCall(`/coordination/${gameId}/activities`, 'GET', null, key);
         displayResult('activities-display', result);
     });
 
     document.getElementById('propose-deal-btn').addEventListener('click', async () => {
         const recipientId = document.getElementById('deal-recipient-id').value;
-        const gameId = document.getElementById('deal-game-id').value || document.getElementById('game-id-guess').value;
+        const gameId = document.getElementById('global-game-id').value;
         const potSharePercent = parseInt(document.getElementById('deal-pot-share').value, 10) || 50;
-        const key = document.getElementById('my-player-key').value;
+        const key = document.getElementById('global-secret-key').value || document.getElementById('my-player-key').value;
         const result = await apiCall('/coordination/auto-propose', 'POST', { recipientId, potSharePercent, gameId }, key);
         displayResult('proposal-result-display', result);
     });
 
     document.getElementById('accept-deal-btn').addEventListener('click', async () => {
         const dealId = document.getElementById('respond-deal-id').value;
-        const key = document.getElementById('my-player-key').value;
+        const key = document.getElementById('global-secret-key').value || document.getElementById('my-player-key').value;
         const result = await apiCall('/coordination/accept', 'POST', { dealId }, key);
         displayResult('response-display', result);
         // Refresh pending deals after accepting
@@ -354,7 +368,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     async function fetchPendingDeals() {
-        const key = storage.get('playerKey');
+        const keyGlobal = document.getElementById('global-secret-key');
+        const keyField = document.getElementById('my-player-key');
+        const key = (keyGlobal && keyGlobal.value) || (keyField && keyField.value) || storage.get('playerKey');
         if (!key) {
             displayResult('pending-deals-display', { error: 'No authentication key found. Please register first.' });
             return;

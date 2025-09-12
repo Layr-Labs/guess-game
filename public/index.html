@@ -71,9 +71,9 @@
             </div>
             <p class="section-desc">Guess the secret number! Get hints (hot/warm/cold) to help you.</p>
             <div class="input-group">
-                <input type="text" id="game-id-guess" placeholder="Game ID (from game creation)">
+                <input type="text" id="global-game-id" placeholder="Game ID (from game creation)">
                 <input type="text" id="playerId-guess" placeholder="Your Player ID">
-                <input type="password" id="player-key-guess" placeholder="Your Secret Key">
+                <input type="password" id="global-secret-key" placeholder="Your Secret Key">
                 <button id="use-saved-creds-btn" type="button" title="Fill from saved">📝 Use Saved</button>
             </div>
             <div class="input-group">
@@ -91,7 +91,7 @@
             </div>
             <p class="section-desc">See if the game has ended and who won!</p>
             <div class="input-group">
-                <input type="text" id="game-id-status" placeholder="Game ID">
+                <input type="text" id="game-id-status" placeholder="Game ID" style="display:none">
                 <button id="status-btn">📊 Check Status</button>
             </div>
             <div id="status-display" class="result-display"></div>
@@ -108,7 +108,7 @@
             <h4>🔍 Discover Players & Hints</h4>
             <div class="input-group">
                 <button id="list-players-btn" type="button">👥 List All Players</button>
-                <input type="text" id="game-id-activities" placeholder="Game ID to see hints">
+                <input type="text" id="game-id-activities" placeholder="Game ID to see hints" style="display:none">
                 <button id="load-activities-btn" type="button">🔥 Load Player Hints</button>
             </div>
             <div id="players-display" class="result-display"></div>
@@ -118,9 +118,9 @@
             <p class="small-text">Offer to share your hint with another player for a percentage of their winnings.</p>
             <div class="input-group">
                 <input type="text" id="deal-recipient-id" placeholder="Player to propose to">
-                <input type="text" id="deal-game-id" placeholder="Game ID">
+                <input type="text" id="deal-game-id" placeholder="Game ID" style="display:none">
                 <input type="number" id="deal-pot-share" placeholder="Your cut %" value="50" min="1" max="99">
-                <input type="password" id="my-player-key" placeholder="Your Secret Key">
+                <input type="password" id="my-player-key" placeholder="Your Secret Key" style="display:none">
                 <button id="use-saved-key-coord-btn" type="button" title="Use saved key">🔑 Use Saved</button>
                 <button id="propose-deal-btn">💼 Propose Deal</button>
             </div>
