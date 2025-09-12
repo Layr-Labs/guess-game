@@ -1,68 +1,97 @@
-# EigenX TEE TypeScript Application
+# eigenx-tee-typescript-app
 
 The game is a sealed number-guessing contest where players submit guesses within a range and get immediate hot/warm/cold feedback without revealing their numbers. A correct guess ends the game and wins the pot; otherwise at the deadline the closest guess wins the accumulated fees.
 
-## Requirements
+## Prerequisites
+
+Before deploying, you'll need:
+
+- **Docker** - To package and publish your application image
+  - [Download Docker](https://www.docker.com/get-started/)
+  - You'll also need to `docker login` to push images to your registry
+- **Sepolia ETH** - To pay for deployment transactions
+  - [Google Cloud Faucet](https://cloud.google.com/application/web3/faucet/ethereum/sepolia)
+  - [Alchemy Faucet](https://sepoliafaucet.com/)
+  
+Runtime requirements for local dev:
 
 - Node.js 20+
 - npm
-- eigenx CLI 
+- eigenx CLI
 
 ## Environment
 
-The app requires the following environment variables:
+Set the following environment variables for local development:
 
-- `MNEMONIC` (required): Seed phrase used to derive a sealing key - automatically generated if not provided by Compute.
+- `MNEMONIC` (required): Seed phrase used to derive a sealing key. Required locally. In production, the platform should supply this.
 - `PORT` (optional): HTTP port, defaults to `3000`.
+- `NGROK_AUTHTOKEN` (optional): Token for authenticated ngrok tunnels when running via Docker.
 
-Copy the example environment file and make your changes:
+Create a `.env` file and populate it with your values.
 
-```bash
-cp .env.example .env
-```
+## Development
 
-## Install & Run (Local)
-
+### Setup & Local Testing
 ```bash
 npm install
-npx ts-node src/index.ts
-```
-
-Then open `http://localhost:3000/`.
-
-## Build (optional)
-
-If you prefer compiled output:
-
-```bash
-npm run build
-node dist/index.js
-```
-
-## Docker
-
-The provided `Dockerfile` runs the app directly from `src/` using `ts-node`.
-
-Build the image:
-
-```bash
-docker build -t eigenx-app .
-```
-
-Run (ensure `MNEMONIC` is provided):
-
-```bash
-docker run --rm -p 3000:3000 \
-  -e MNEMONIC="your mnemonic" \
-  -e PORT=3000 \
-  eigenx-app
+# Create .env and set MNEMONIC (and optional PORT)
+npm run dev
 ```
 
 Open `http://localhost:3000/`.
 
-## How To Deploy on EigenCompute
+### Docker Testing
+```bash
+docker build -t my-app .
+docker run --rm \
+  -p 3000:3000 -p 4040:4040 \
+  --env-file .env \
+  my-app
+```
 
-TBD.
+- App: `http://localhost:3000`
+- Ngrok web UI: `http://localhost:4040`
+
+Note: When using `--env-file`, do not quote values. For example:
+```
+MNEMONIC=word1 word2 ...
+PORT=3000
+NGROK_AUTHTOKEN=2wVdN4... # no quotes
+```
+
+## Deployment
+
+```bash
+# Store your private key (generate new or use existing)
+eigenx auth generate --store
+# OR: eigenx auth login (if you have an existing key)
+
+eigenx app deploy username/image-name
+```
+
+The CLI will automatically detect the `Dockerfile` and build your app before deploying.
+
+## Management & Monitoring
+
+### App Lifecycle
+```bash
+eigenx app list                    # List all apps
+eigenx app info [app-name]         # Get app details
+eigenx app logs [app-name]         # View logs
+eigenx app start [app-name]        # Start stopped app
+eigenx app stop [app-name]         # Stop running app
+eigenx app terminate [app-name]    # Terminate app
+eigenx app upgrade [app-name] [image] # Update deployment
+```
+
+### App Naming
+```bash
+eigenx app name [app-id] [new-name]  # Update friendly name
+```
+
+## Documentation
+
+[EigenX CLI Documentation](https://github.com/Layr-Labs/eigenx-cli/blob/main/README.md)
 
 ## API Overview
 
