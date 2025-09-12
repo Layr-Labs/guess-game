@@ -161,14 +161,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ===== NOTIFICATION SYSTEM =====
     const Notifications = {
+        currentTimeout: null,
+        
         show(message, type = 'success', duration = 3000) {
             const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.className = `toast ${type}`;
-            toast.classList.add('show');
             
+            // Clear any existing timeout
+            if (this.currentTimeout) {
+                clearTimeout(this.currentTimeout);
+                this.currentTimeout = null;
+            }
+            
+            // Reset classes and show new message
+            toast.className = 'toast';
+            toast.classList.remove('show');
+            toast.textContent = message;
+            toast.classList.add(type);
+            
+            // Force reflow then show
             setTimeout(() => {
+                toast.classList.add('show');
+            }, 10);
+            
+            // Hide after duration
+            this.currentTimeout = setTimeout(() => {
                 toast.classList.remove('show');
+                this.currentTimeout = null;
             }, duration);
         },
         
@@ -203,12 +221,33 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (useAuth && GameState.player.key) {
                 options.headers['Authorization'] = `Bearer ${GameState.player.key}`;
+                console.log('API call with auth:', {
+                    endpoint,
+                    method,
+                    hasAuth: true,
+                    keyLength: GameState.player.key.length,
+                    headers: options.headers
+                });
+            } else if (useAuth) {
+                console.error('API call requested auth but no key available:', {
+                    endpoint,
+                    method,
+                    playerKey: GameState.player.key
+                });
+                return { error: 'Authentication required but no key available' };
             }
             
             try {
                 Effects.showLoading();
+                console.log('Making API request:', { endpoint, method, options });
             const response = await fetch(endpoint, options);
             const data = await response.json();
+                
+                console.log('API response:', { 
+                    status: response.status, 
+                    ok: response.ok, 
+                    data 
+                });
                 
                 if (!response.ok) {
                     throw new Error(data.error || `HTTP error! status: ${response.status}`);
@@ -281,6 +320,97 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // ===== PROFILE MANAGEMENT =====
+    const Profile = {
+        updateProfile() {
+            const profilePlayerId = document.getElementById('profile-player-id');
+            const profilePlayerKey = document.getElementById('profile-player-key');
+            const profileSection = document.getElementById('profile-section');
+            
+            if (GameState.player.isRegistered && GameState.player.id) {
+                if (profilePlayerId) profilePlayerId.textContent = GameState.player.id;
+                if (profilePlayerKey) {
+                    // Show truncated key for security
+                    const key = GameState.player.key || '';
+                    const truncatedKey = key.length > 10 ? 
+                        `${key.substring(0, 8)}...${key.substring(key.length - 4)}` : 
+                        key;
+                    profilePlayerKey.textContent = truncatedKey;
+                }
+                if (profileSection) profileSection.style.display = 'block';
+            } else {
+                if (profilePlayerId) profilePlayerId.textContent = 'Not logged in';
+                if (profilePlayerKey) profilePlayerKey.textContent = 'Not available';
+                if (profileSection) profileSection.style.display = 'none';
+            }
+        },
+        
+        toggleDropdown() {
+            const dropdown = document.getElementById('profile-dropdown');
+            if (dropdown) {
+                dropdown.classList.toggle('show');
+            }
+        },
+        
+        hideDropdown() {
+            const dropdown = document.getElementById('profile-dropdown');
+            if (dropdown) {
+                dropdown.classList.remove('show');
+            }
+        },
+        
+        async copyPlayerId() {
+            if (!GameState.player.id) {
+                Notifications.error('No player ID to copy');
+                return;
+            }
+            
+            try {
+                await navigator.clipboard.writeText(GameState.player.id);
+                Notifications.success('Player ID copied to clipboard!');
+            } catch (error) {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = GameState.player.id;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                Notifications.success('Player ID copied to clipboard!');
+            }
+        },
+        
+        async copyPlayerKey() {
+            if (!GameState.player.key) {
+                Notifications.error('No secret key to copy');
+                return;
+            }
+            
+            try {
+                await navigator.clipboard.writeText(GameState.player.key);
+                Notifications.success('Secret key copied to clipboard!');
+            } catch (error) {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = GameState.player.key;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                Notifications.success('Secret key copied to clipboard!');
+            }
+        },
+        
+        logout() {
+            if (confirm('Are you sure you want to logout? This will clear all your saved data.')) {
+                Game.resetToAccountCreation();
+                this.updateProfile();
+                this.hideDropdown();
+                Notifications.info('Logged out successfully');
+            }
+        }
+    };
+
     // ===== GAME LOGIC =====
     const Game = {
         async initializePlayer() {
@@ -288,10 +418,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const savedPlayerId = Storage.get(Storage.keys.PLAYER_ID);
             const savedPlayerKey = Storage.get(Storage.keys.PLAYER_KEY);
             
+            console.log('Initializing player - Saved ID:', savedPlayerId, 'Saved Key:', savedPlayerKey ? 'Present' : 'Missing');
+            
             if (savedPlayerId && savedPlayerKey) {
                 GameState.player.id = savedPlayerId;
                 GameState.player.key = savedPlayerKey;
                 GameState.player.isRegistered = true;
+                
+                console.log('Player initialized from storage:', GameState.player.id);
                 
                 // Load balance
                 await this.updateBalance();
@@ -299,9 +433,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Show welcome message
                 this.showWelcomeMessage();
                 StepManager.enableNextButton(1);
-        } else {
+                
+                // Update profile
+                Profile.updateProfile();
+            } else {
+                console.log('No saved player found, showing registration form');
                 // Show registration form
                 this.showRegistrationForm();
+                
+                // Update profile
+                Profile.updateProfile();
             }
         },
         
@@ -313,7 +454,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (welcomeMsg && regForm && playerName) {
                 playerName.textContent = GameState.player.id;
-                currentBalance.textContent = GameState.player.balance;
+                if (currentBalance) currentBalance.textContent = GameState.player.balance;
                 welcomeMsg.classList.add('show');
                 regForm.style.display = 'none';
             }
@@ -326,7 +467,41 @@ document.addEventListener('DOMContentLoaded', () => {
             if (welcomeMsg && regForm) {
                 welcomeMsg.classList.remove('show');
                 regForm.style.display = 'block';
+                
+                // Make sure the account creation form is visible by default
+                const createAccountBtn = document.getElementById('create-account-btn');
+                const loginAccountBtn = document.getElementById('login-account-btn');
+                const createAccountForm = document.getElementById('create-account-form');
+                const loginAccountForm = document.getElementById('login-account-form');
+                
+                if (createAccountBtn) createAccountBtn.classList.add('active');
+                if (loginAccountBtn) loginAccountBtn.classList.remove('active');
+                if (createAccountForm) createAccountForm.style.display = 'block';
+                if (loginAccountForm) loginAccountForm.style.display = 'none';
             }
+        },
+        
+        // Add a function to reset to new account creation
+        resetToAccountCreation() {
+            // Clear all stored data
+            Storage.clear();
+            
+            // Reset game state
+            GameState.player = {
+                id: null,
+                key: null,
+                balance: 0,
+                isRegistered: false
+            };
+            
+            // Show registration form
+            this.showRegistrationForm();
+            
+            // Reset to step 1
+            StepManager.goToStep(1);
+            StepManager.disableNextButton(1);
+            
+            Notifications.info('Ready to create a new account');
         },
         
         async registerPlayer(playerId) {
@@ -342,19 +517,92 @@ document.addEventListener('DOMContentLoaded', () => {
                 return false;
             }
             
-            // Save player data
+            console.log('Registration successful:', result);
+            
+            // Save player data immediately
             GameState.player.id = playerId.trim();
             GameState.player.key = result.key;
             GameState.player.isRegistered = true;
             
-            Storage.set(Storage.keys.PLAYER_ID, GameState.player.id);
-            Storage.set(Storage.keys.PLAYER_KEY, GameState.player.key);
+            // Store in localStorage with verification
+            const playerIdStored = Storage.set(Storage.keys.PLAYER_ID, GameState.player.id);
+            const playerKeyStored = Storage.set(Storage.keys.PLAYER_KEY, GameState.player.key);
+            
+            console.log('Storage results - ID:', playerIdStored, 'Key:', playerKeyStored);
+            console.log('Stored player data:', {
+                id: GameState.player.id,
+                key: GameState.player.key ? 'Present' : 'Missing'
+            });
             
             Notifications.success(`Welcome ${GameState.player.id}! Registration successful!`);
             this.showWelcomeMessage();
             StepManager.enableNextButton(1);
             
+            // Update profile
+            Profile.updateProfile();
+            
             return true;
+        },
+        
+        async loginPlayer(playerId, playerKey) {
+            if (!playerId || playerId.trim().length < 3) {
+                Notifications.error('Player name must be at least 3 characters long');
+                return false;
+            }
+            
+            if (!playerKey || playerKey.trim().length < 10) {
+                Notifications.error('Please enter your secret key');
+                return false;
+            }
+            
+            // Test the credentials by making a balance call
+            const testOptions = {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${playerKey.trim()}`
+                }
+            };
+            
+            try {
+                const response = await fetch(`/wallet/${playerId.trim()}/balance`, testOptions);
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    Notifications.error('Invalid credentials. Please check your player name and key.');
+                    return false;
+                }
+                
+                console.log('Login successful for:', playerId.trim());
+                
+                // Save player data
+                GameState.player.id = playerId.trim();
+                GameState.player.key = playerKey.trim();
+                GameState.player.isRegistered = true;
+                GameState.player.balance = result.balance || 0;
+                
+                // Store in localStorage
+                Storage.set(Storage.keys.PLAYER_ID, GameState.player.id);
+                Storage.set(Storage.keys.PLAYER_KEY, GameState.player.key);
+                
+                console.log('Login stored player data:', {
+                    id: GameState.player.id,
+                    key: GameState.player.key ? 'Present' : 'Missing'
+                });
+                
+                Notifications.success(`Welcome back ${GameState.player.id}!`);
+                this.showWelcomeMessage();
+                StepManager.enableNextButton(1);
+                
+                // Update profile
+                Profile.updateProfile();
+                
+                return true;
+            } catch (error) {
+                console.error('Login error:', error);
+                Notifications.error('Login failed. Please check your credentials.');
+                return false;
+            }
         },
         
         async updateBalance() {
@@ -453,6 +701,27 @@ document.addEventListener('DOMContentLoaded', () => {
             this.startGameTimer();
         },
         
+        async copyGameId() {
+            if (!GameState.currentGame.id) {
+                Notifications.error('No active game to copy');
+                return;
+            }
+            
+            try {
+                await navigator.clipboard.writeText(GameState.currentGame.id);
+                Notifications.success('Game ID copied to clipboard!');
+            } catch (error) {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = GameState.currentGame.id;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                Notifications.success('Game ID copied to clipboard!');
+            }
+        },
+        
         startGameTimer() {
             const timerElement = document.getElementById('time-remaining');
             if (!timerElement || !GameState.currentGame.deadline) return;
@@ -510,6 +779,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 return false;
             }
             
+            console.log('Making guess with auth data:', {
+                playerId: GameState.player.id,
+                hasKey: !!GameState.player.key,
+                keyLength: GameState.player.key ? GameState.player.key.length : 0,
+                gameId: GameState.currentGame.id,
+                guess: guessNumber
+            });
+            
             const result = await API.call(
                 `/game/${GameState.currentGame.id}/guess`,
                 'POST',
@@ -550,7 +827,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Clear current game
                 GameState.currentGame.isActive = false;
                 
-            } else {
+        } else {
                 // Wrong guess - show hint and effects
                 this.displayHint(result.hint);
                 
@@ -586,9 +863,9 @@ document.addEventListener('DOMContentLoaded', () => {
         async checkGameStatus() {
             if (!GameState.currentGame.id) {
                 Notifications.error('No active game found');
-                return;
-            }
-            
+            return;
+        }
+
             const result = await API.call(`/game/${GameState.currentGame.id}/status`);
             
             if (result.error) {
@@ -652,16 +929,202 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Go to step 3
             StepManager.goToStep(3);
+        },
+        
+        // ===== DEALS/COORDINATION FUNCTIONS =====
+        async listPlayers() {
+            const result = await API.call('/coordination/players');
+            
+            if (result.error) {
+                Notifications.error(result.error);
+                return;
+            }
+            
+            const display = document.getElementById('players-display');
+            if (display) {
+                if (result.players && result.players.length > 0) {
+                    display.innerHTML = `<strong>Active Players:</strong><br/>${result.players.map(player => 
+                        `<span class="player-item">${player}</span>`
+                    ).join('<br/>')}`;
+                } else {
+                    display.innerHTML = '<em>No players found</em>';
+                }
+            }
+        },
+        
+        async loadGameHints() {
+            if (!GameState.currentGame.id) {
+                Notifications.error('No active game');
+                return;
+            }
+            
+            const result = await API.call(`/coordination/${GameState.currentGame.id}/activities`);
+            
+            if (result.error) {
+                Notifications.error(result.error);
+                return;
+            }
+            
+            const display = document.getElementById('activities-display');
+            if (display) {
+                if (result.activities && result.activities.length > 0) {
+                    display.innerHTML = `<strong>Player Hints:</strong><br/>` + 
+                        result.activities.map(activity => 
+                            `<div class="hint-item">
+                                <strong>${activity.playerId}:</strong> 
+                                <span class="hint-${activity.hint}">${activity.hint.toUpperCase()}</span>
+                            </div>`
+                        ).join('');
+                } else {
+                    display.innerHTML = '<em>No hints available yet</em>';
+                }
+            }
+        },
+        
+        async proposeDeal(recipientId, potSharePercent) {
+            if (!GameState.currentGame.id) {
+                Notifications.error('No active game');
+                return false;
+            }
+            
+            if (!recipientId || recipientId.trim() === '') {
+                Notifications.error('Please enter a player name');
+                return false;
+            }
+            
+            const result = await API.call('/coordination/auto-propose', 'POST', {
+                recipientId: recipientId.trim(),
+                potSharePercent: parseInt(potSharePercent) || 50,
+                gameId: GameState.currentGame.id
+            }, true);
+            
+            if (result.error) {
+                Notifications.error(result.error);
+                return false;
+            }
+            
+            Notifications.success(`Deal proposed to ${recipientId}!`);
+            
+            // Clear the input
+            const input = document.getElementById('deal-recipient-id');
+            if (input) input.value = '';
+            
+            return true;
+        },
+        
+        async fetchPendingDeals() {
+            const result = await API.call('/coordination/pending-deals', 'GET', null, true);
+            
+            if (result.error) {
+                Notifications.error(result.error);
+                return;
+            }
+            
+            const display = document.getElementById('pending-deals-display');
+            if (display) {
+                if (result.pendingDeals && result.pendingDeals.length > 0) {
+                    display.innerHTML = result.pendingDeals.map(deal => 
+                        `<div class="deal-card">
+                            <div class="deal-header">
+                                <span>From: <strong>${deal.senderId}</strong></span>
+                                <span>${deal.potSharePercent}%</span>
+                            </div>
+                            <div class="deal-details">
+                                Game: ${deal.gameId}<br/>
+                                Message: ${deal.message}
+                            </div>
+                            <div class="deal-actions">
+                                <button onclick="Game.acceptDeal('${deal.dealId}')" class="btn-primary">
+                                    <i class="fas fa-check"></i> Accept
+                    </button>
+                </div>
+                        </div>`
+                    ).join('');
+                } else {
+                    display.innerHTML = '<em>No pending deals</em>';
+                }
+            }
+        },
+        
+        async acceptDeal(dealId) {
+            const result = await API.call('/coordination/accept', 'POST', { dealId }, true);
+            
+            if (result.error) {
+                Notifications.error(result.error);
+                return false;
+            }
+            
+            Notifications.success('Deal accepted!');
+            
+            // Refresh pending deals
+            setTimeout(() => this.fetchPendingDeals(), 500);
+            return true;
         }
     };
 
     // ===== EVENT LISTENERS =====
     function setupEventListeners() {
         
-        // Step 1: Registration
+        // Profile Section
+        const profileToggle = document.getElementById('profile-toggle');
+        const profileDropdown = document.getElementById('profile-dropdown');
+        const copyPlayerIdBtn = document.getElementById('copy-player-id-btn');
+        const copyPlayerKeyBtn = document.getElementById('copy-player-key-btn');
+        const profileLogoutBtn = document.getElementById('profile-logout-btn');
+        
+        if (profileToggle) {
+            profileToggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                Profile.toggleDropdown();
+            });
+        }
+        
+        if (copyPlayerIdBtn) {
+            copyPlayerIdBtn.addEventListener('click', () => Profile.copyPlayerId());
+        }
+        
+        if (copyPlayerKeyBtn) {
+            copyPlayerKeyBtn.addEventListener('click', () => Profile.copyPlayerKey());
+        }
+        
+        if (profileLogoutBtn) {
+            profileLogoutBtn.addEventListener('click', () => Profile.logout());
+        }
+        
+        // Close profile dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            const profileSection = document.getElementById('profile-section');
+            if (profileSection && !profileSection.contains(e.target)) {
+                Profile.hideDropdown();
+            }
+        });
+        
+        // Step 1: Registration and Login
+        const createAccountBtn = document.getElementById('create-account-btn');
+        const loginAccountBtn = document.getElementById('login-account-btn');
+        const createAccountForm = document.getElementById('create-account-form');
+        const loginAccountForm = document.getElementById('login-account-form');
+        
+        // Account mode switching
+        if (createAccountBtn && loginAccountBtn) {
+            createAccountBtn.addEventListener('click', () => {
+                createAccountBtn.classList.add('active');
+                loginAccountBtn.classList.remove('active');
+                if (createAccountForm) createAccountForm.style.display = 'block';
+                if (loginAccountForm) loginAccountForm.style.display = 'none';
+            });
+            
+            loginAccountBtn.addEventListener('click', () => {
+                loginAccountBtn.classList.add('active');
+                createAccountBtn.classList.remove('active');
+                if (loginAccountForm) loginAccountForm.style.display = 'block';
+                if (createAccountForm) createAccountForm.style.display = 'none';
+            });
+        }
+        
+        // Registration
         const registerBtn = document.getElementById('register-btn');
         const playerIdInput = document.getElementById('playerId-register');
-        const nextStep1 = document.getElementById('next-step-1');
         
         if (registerBtn && playerIdInput) {
             registerBtn.addEventListener('click', async () => {
@@ -675,6 +1138,36 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }
+        
+        // Login
+        const loginBtn = document.getElementById('login-btn');
+        const playerIdLoginInput = document.getElementById('playerId-login');
+        const playerKeyLoginInput = document.getElementById('playerKey-login');
+        
+        if (loginBtn && playerIdLoginInput && playerKeyLoginInput) {
+            loginBtn.addEventListener('click', async () => {
+                const playerId = playerIdLoginInput.value.trim();
+                const playerKey = playerKeyLoginInput.value.trim();
+                await Game.loginPlayer(playerId, playerKey);
+            });
+            
+            playerKeyLoginInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    loginBtn.click();
+                }
+            });
+        }
+        
+        // Create new account button (from welcome message)
+        const createNewAccountBtn = document.getElementById('create-new-account-btn');
+        if (createNewAccountBtn) {
+            createNewAccountBtn.addEventListener('click', () => {
+                Game.resetToAccountCreation();
+            });
+        }
+        
+        // Next step button
+        const nextStep1 = document.getElementById('next-step-1');
         
         if (nextStep1) {
             nextStep1.addEventListener('click', () => {
@@ -788,6 +1281,86 @@ document.addEventListener('DOMContentLoaded', () => {
             playAgainBtn.addEventListener('click', () => Game.resetForNewGame());
         }
         
+        // Copy Game ID button
+        const copyGameIdBtn = document.getElementById('copy-game-id-btn');
+        if (copyGameIdBtn) {
+            copyGameIdBtn.addEventListener('click', () => Game.copyGameId());
+        }
+        
+        // Deals section - Tab switching
+        const dealTabs = document.querySelectorAll('.deal-tab');
+        const dealPanels = document.querySelectorAll('.deal-panel');
+        
+        dealTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Remove active from all tabs and panels
+                dealTabs.forEach(t => t.classList.remove('active'));
+                dealPanels.forEach(p => p.classList.remove('active'));
+                
+                // Add active to clicked tab
+                tab.classList.add('active');
+                
+                // Show corresponding panel
+                const targetPanel = tab.id.replace('-tab', '-panel');
+                const panel = document.getElementById(targetPanel);
+                if (panel) panel.classList.add('active');
+            });
+        });
+        
+        // Deals section - Functionality
+        const listPlayersBtn = document.getElementById('list-players-btn');
+        const loadActivitiesBtn = document.getElementById('load-activities-btn');
+        const proposeDealBtn = document.getElementById('propose-deal-btn');
+        const fetchDealsBtn = document.getElementById('fetch-deals-btn');
+        const startAutoFetchBtn = document.getElementById('start-auto-fetch-btn');
+        const stopAutoFetchBtn = document.getElementById('stop-auto-fetch-btn');
+        
+        if (listPlayersBtn) {
+            listPlayersBtn.addEventListener('click', () => Game.listPlayers());
+        }
+        
+        if (loadActivitiesBtn) {
+            loadActivitiesBtn.addEventListener('click', () => Game.loadGameHints());
+        }
+        
+        if (proposeDealBtn) {
+            proposeDealBtn.addEventListener('click', async () => {
+        const recipientId = document.getElementById('deal-recipient-id').value;
+                const potShare = document.getElementById('deal-pot-share').value;
+                await Game.proposeDeal(recipientId, potShare);
+            });
+        }
+        
+        if (fetchDealsBtn) {
+            fetchDealsBtn.addEventListener('click', () => Game.fetchPendingDeals());
+        }
+        
+    let autoFetchInterval = null;
+
+        if (startAutoFetchBtn) {
+            startAutoFetchBtn.addEventListener('click', () => {
+        if (autoFetchInterval) return;
+
+                autoFetchInterval = setInterval(() => Game.fetchPendingDeals(), 5000);
+                startAutoFetchBtn.style.display = 'none';
+                stopAutoFetchBtn.style.display = 'inline-block';
+                Notifications.info('Auto-checking deals every 5 seconds');
+                Game.fetchPendingDeals(); // Initial fetch
+            });
+        }
+        
+        if (stopAutoFetchBtn) {
+            stopAutoFetchBtn.addEventListener('click', () => {
+        if (autoFetchInterval) {
+            clearInterval(autoFetchInterval);
+            autoFetchInterval = null;
+        }
+                stopAutoFetchBtn.style.display = 'none';
+                startAutoFetchBtn.style.display = 'inline-block';
+                Notifications.info('Stopped auto-checking deals');
+            });
+        }
+        
         // Progress bar step navigation
         const progressSteps = document.querySelectorAll('.progress-step');
         progressSteps.forEach((step, index) => {
@@ -876,6 +1449,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     `;
     document.head.appendChild(style);
+
+    // Make Game object available globally for deal buttons
+    window.Game = Game;
 
     // Start the game!
     init();

@@ -12,9 +12,48 @@
 </head>
 <body>
     <div class="game-container">
+        <!-- Profile Section -->
+        <div class="profile-section" id="profile-section">
+            <div class="profile-toggle" id="profile-toggle">
+                <i class="fas fa-user-circle"></i>
+                <span>Profile</span>
+            </div>
+            <div class="profile-dropdown" id="profile-dropdown">
+                <div class="profile-info">
+                    <div class="profile-item">
+                        <label>Player ID:</label>
+                        <div class="profile-value">
+                            <span id="profile-player-id">Not logged in</span>
+                            <button class="btn-copy-small" id="copy-player-id-btn" title="Copy Player ID">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="profile-item">
+                        <label>Secret Key:</label>
+                        <div class="profile-value">
+                            <span id="profile-player-key">Not available</span>
+                            <button class="btn-copy-small" id="copy-player-key-btn" title="Copy Secret Key">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="profile-actions">
+                        <button id="profile-logout-btn" class="btn-logout">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="header">
             <h1 class="game-title">Guess<span class="accent">X</span></h1>
             <p class="game-subtitle">Private Number Guessing Challenge</p>
+            <div class="powered-by">
+                <span>Powered by</span>
+                <img src="eigen-logo.png" alt="Eigen" class="eigen-logo">
+            </div>
         </div>
         
         <!-- Progress Indicator -->
@@ -49,14 +88,43 @@
                         <div class="player-stats">
                             <span class="stat"><i class="fas fa-coins"></i> <span id="current-balance">0</span> coins</span>
                         </div>
+                        <div class="welcome-actions">
+                            <button id="create-new-account-btn" class="btn-secondary">
+                                <i class="fas fa-user-plus"></i> Create New Account
+                            </button>
+                        </div>
                     </div>
                     <div class="registration-form" id="registration-form">
-                        <p class="step-description">Choose your player name to get started</p>
-                        <div class="input-container">
-                            <input type="text" id="playerId-register" placeholder="Enter your player name" maxlength="20">
-                            <button id="register-btn" class="btn-primary">
-                                <i class="fas fa-rocket"></i> Start Playing
+                        <div class="account-mode-selector">
+                            <button class="account-mode-btn active" id="create-account-btn">
+                                <i class="fas fa-user-plus"></i>
+                                <span>Create New Account</span>
                             </button>
+                            <button class="account-mode-btn" id="login-account-btn">
+                                <i class="fas fa-sign-in-alt"></i>
+                                <span>Login to Existing</span>
+                            </button>
+                        </div>
+                        
+                        <div class="account-form" id="create-account-form">
+                            <p class="step-description">Create a new account to start playing</p>
+                            <div class="input-container">
+                                <input type="text" id="playerId-register" placeholder="Choose your player name" maxlength="20">
+                                <button id="register-btn" class="btn-primary">
+                                    <i class="fas fa-rocket"></i> Create & Start
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="account-form" id="login-account-form" style="display: none;">
+                            <p class="step-description">Login with your existing credentials</p>
+                            <div class="input-container">
+                                <input type="text" id="playerId-login" placeholder="Your player name" maxlength="20">
+                                <input type="password" id="playerKey-login" placeholder="Your secret key">
+                                <button id="login-btn" class="btn-primary">
+                                    <i class="fas fa-sign-in-alt"></i> Login & Start
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <div class="step-actions">
@@ -131,7 +199,7 @@
                                 </div>
                                 <div class="setting-item">
                                     <i class="fas fa-clock"></i>
-                                    <input type="number" id="game-deadline" value="120" min="30" placeholder="Time limit (seconds)">
+                                    <input type="number" id="game-deadline" value="300" min="30" placeholder="Time limit (seconds)">
                                 </div>
                             </div>
                         </div>
@@ -166,7 +234,12 @@
                     <h2><i class="fas fa-bullseye"></i> Make Your Guess</h2>
                     <div class="game-info-card" id="current-game-info">
                         <div class="game-header">
-                            <span class="game-id">Game: <code id="current-game-id">Loading...</code></span>
+                            <span class="game-id">
+                                Game: <code id="current-game-id">Loading...</code>
+                                <button id="copy-game-id-btn" class="btn-copy" title="Copy Game ID">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </span>
                             <span class="game-timer" id="game-timer">
                                 <i class="fas fa-clock"></i> <span id="time-remaining">--:--</span>
                             </span>
@@ -191,6 +264,71 @@
                         <button id="check-status-btn" class="btn-secondary">
                             <i class="fas fa-sync-alt"></i> Check Game Status
                         </button>
+                    </div>
+                    
+                    <div class="deals-section" id="deals-section">
+                        <h3><i class="fas fa-handshake"></i> Coordinate with Others</h3>
+                        <p class="section-description">Share hints with other players for a cut of their winnings!</p>
+                        
+                        <div class="deals-tabs">
+                            <button class="deal-tab active" id="players-tab">
+                                <i class="fas fa-users"></i> Players
+                            </button>
+                            <button class="deal-tab" id="hints-tab">
+                                <i class="fas fa-lightbulb"></i> Hints
+                            </button>
+                            <button class="deal-tab" id="deals-tab">
+                                <i class="fas fa-handshake"></i> Deals
+                            </button>
+                        </div>
+                        
+                        <div class="deals-content">
+                            <!-- Players List -->
+                            <div class="deal-panel active" id="players-panel">
+                                <button id="list-players-btn" class="btn-secondary">
+                                    <i class="fas fa-refresh"></i> Refresh Players
+                                </button>
+                                <div id="players-display" class="deals-display"></div>
+                            </div>
+                            
+                            <!-- Game Hints -->
+                            <div class="deal-panel" id="hints-panel">
+                                <button id="load-activities-btn" class="btn-secondary">
+                                    <i class="fas fa-eye"></i> View Game Hints
+                                </button>
+                                <div id="activities-display" class="deals-display"></div>
+                            </div>
+                            
+                            <!-- Deal Management -->
+                            <div class="deal-panel" id="deals-panel">
+                                <div class="deal-actions">
+                                    <h4>Propose Deal</h4>
+                                    <div class="input-container">
+                                        <input type="text" id="deal-recipient-id" placeholder="Player name to deal with">
+                                        <input type="number" id="deal-pot-share" placeholder="Your cut %" value="50" min="1" max="99">
+                                        <button id="propose-deal-btn" class="btn-primary">
+                                            <i class="fas fa-paper-plane"></i> Propose
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="pending-deals">
+                                    <h4>Pending Deals</h4>
+                                    <div class="deal-controls">
+                                        <button id="fetch-deals-btn" class="btn-secondary">
+                                            <i class="fas fa-inbox"></i> Check Deals
+                                        </button>
+                                        <button id="start-auto-fetch-btn" class="btn-secondary">
+                                            <i class="fas fa-play"></i> Auto-Check
+                                        </button>
+                                        <button id="stop-auto-fetch-btn" class="btn-secondary" style="display:none">
+                                            <i class="fas fa-stop"></i> Stop Auto
+                                        </button>
+                                    </div>
+                                    <div id="pending-deals-display" class="deals-display"></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     
                     <div class="step-actions">
