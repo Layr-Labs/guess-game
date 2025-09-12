@@ -26,11 +26,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // ===== ENHANCED LOCAL STORAGE =====
     const Storage = {
         keys: {
-            PLAYER_ID: 'retroguess_player_id',
-            PLAYER_KEY: 'retroguess_player_key',
-            CURRENT_GAME: 'retroguess_current_game',
-            GAME_HISTORY: 'retroguess_game_history',
-            SETTINGS: 'retroguess_settings'
+            PLAYER_ID: 'guessx_player_id',
+            PLAYER_KEY: 'guessx_player_key',
+            CURRENT_GAME: 'guessx_current_game',
+            GAME_HISTORY: 'guessx_game_history',
+            SETTINGS: 'guessx_settings'
         },
         
         set(key, value) {
@@ -1396,7 +1396,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ===== INITIALIZATION =====
     function init() {
-        console.log('🎮 RetroGuess Game Initializing...');
+        console.log('🎮 GuessX Game Initializing...');
         
         // Setup event listeners
         setupEventListeners();
@@ -1414,8 +1414,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Update progress bar
         StepManager.updateProgressBar();
         
-        console.log('🎮 RetroGuess Game Ready!');
-        Notifications.success('Welcome to RetroGuess!');
+        console.log('🎮 GuessX Game Ready!');
+        Notifications.success('Welcome to GuessX!');
     }
 
     // ===== ADD CONFETTI ANIMATION TO CSS =====
