@@ -159,6 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+
     // ===== NOTIFICATION SYSTEM =====
     const Notifications = {
         currentTimeout: null,
@@ -866,10 +867,12 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+
             const result = await API.call(`/game/${GameState.currentGame.id}/status`);
             
             if (result.error) {
                 Notifications.error(result.error);
+
             return;
         }
 
@@ -1077,6 +1080,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 e.stopPropagation();
                 Profile.toggleDropdown();
             });
+
         }
         
         if (copyPlayerIdBtn) {
@@ -1335,6 +1339,8 @@ document.addEventListener('DOMContentLoaded', () => {
             fetchDealsBtn.addEventListener('click', () => Game.fetchPendingDeals());
         }
         
+
+
     let autoFetchInterval = null;
 
         if (startAutoFetchBtn) {

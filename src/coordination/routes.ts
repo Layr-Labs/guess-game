@@ -2,7 +2,10 @@ import { Router, Request, Response } from 'express';
 import { createDeal, Deal, updateDealStatus, getDeal, grantSharePermission, getPendingDealsForRecipient } from './state';
 import { getPlayerIdByKey, playerExists, listPlayers } from '../player/state';
 import { cryptoRandomId } from '../crypto';
-import { getGame, listGameActivities } from '../game/state';
+import { getGame } from '../game/state';
+import { decryptJSON } from '../crypto';
+import { sealingKey } from '../config';
+import { hasSharePermission } from './state';
 
 const router = Router();
 
@@ -22,7 +25,35 @@ router.get('/:gameId/activities', (req: Request, res: Response) => {
     const { gameId } = req.params;
     const game = getGame(gameId);
     if (!game) return res.status(404).json({ error: 'game not found' });
-    const activities = listGameActivities(gameId);
+
+    // Optional authentication: if provided, we can reveal guesses per accepted deals
+    let viewerId: string | undefined;
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        const key = authHeader.split(' ')[1];
+        viewerId = getPlayerIdByKey(key);
+    }
+
+    const range = game.max - game.min;
+    const activities = [] as Array<{ playerId: string; hint: 'hot' | 'warm' | 'cold'; guess?: number }>;
+    for (const rec of game.guesses) {
+        try {
+            const payload = decryptJSON(rec.sealed, sealingKey) as { playerId: string; guess: number };
+            const distance = Math.abs(payload.guess - game.target);
+            let hint: 'hot' | 'warm' | 'cold' = 'cold';
+            if (range > 0) {
+                if (distance / range <= 0.10) hint = 'hot';
+                else if (distance / range <= 0.25) hint = 'warm';
+            }
+            const item: { playerId: string; hint: 'hot' | 'warm' | 'cold'; guess?: number } = { playerId: payload.playerId, hint };
+            if (viewerId && hasSharePermission(gameId, payload.playerId, viewerId)) {
+                item.guess = payload.guess;
+            }
+            activities.push(item);
+        } catch {
+            // ignore malformed entries
+        }
+    }
     res.status(200).json({ gameId, activities });
 });
 
