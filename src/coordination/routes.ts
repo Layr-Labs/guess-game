@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { createDeal, Deal, updateDealStatus, getDeal, grantSharePermission, getPendingDealsForRecipient } from './state';
 import { getPlayerIdByKey, playerExists, listPlayers } from '../player/state';
 import { cryptoRandomId } from '../crypto';
-import { getGame } from '../game/state';
+import { getGame, listGameActivities } from '../game/state';
 import { decryptJSON } from '../crypto';
 import { sealingKey } from '../config';
 import { hasSharePermission } from './state';
@@ -86,7 +86,7 @@ router.post('/auto-propose', (req: Request, res: Response) => {
 
     // Find recipient hint from activities
     const activities = listGameActivities(gameId);
-    const rec = activities.find(a => a.playerId === recipientId);
+    const rec = activities.find((a: { playerId: string; hint: 'hot' | 'warm' | 'cold' }) => a.playerId === recipientId);
     const hint = rec?.hint || 'warm';
     const message = `I have a ${hint} clue. Share the number for ${potSharePercent}% pot share?`;
 

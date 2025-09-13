@@ -7,6 +7,30 @@ What the app does (in plain English): it’s a sealed number‑guessing contest.
 
 Why this matters: without trusted hardware, app operators can see user inputs. EigenCompute executes your code in a TEE, so guesses are encrypted at rest and only revealed under explicit rules (winner or accepted deal).
 
+## Table of contents
+
+- [At a glance](#at-a-glance)
+- [Flow](#flow)
+  - [Hint thresholds](#hint-thresholds)
+- [Prerequisites](#prerequisites)
+- [Setup](#setup)
+- [Run locally](#run-locally)
+- [Run with Docker + ngrok (optional)](#run-with-docker--ngrok-optional)
+- [How to play (UI walkthrough)](#how-to-play-ui-walkthrough)
+- [API quick reference](#api-quick-reference)
+- [Notes on privacy and shares](#notes-on-privacy-and-shares)
+- [Troubleshooting](#troubleshooting)
+- [Deploy to EigenCompute in minutes (Beginner-friendly)](#deploy-to-eigencompute-in-minutes-beginner-friendly)
+  - [What you’ll do](#what-youll-do)
+  - [Prerequisites](#prerequisites-1)
+  - [1) Install the CLI](#1-install-the-cli)
+  - [2) Set up authentication (wallet)](#2-set-up-authentication-wallet)
+  - [3) Log in to your Docker registry](#3-log-in-to-your-docker-registry)
+  - [4) Deploy to EigenCompute](#4-deploy-to-eigencompute)
+  - [5) Make a change and upgrade](#5-make-a-change-and-upgrade)
+  - [Useful commands](#useful-commands)
+  - [Deploy troubleshooting](#deploy-troubleshooting)
+
 ## At a glance
 
 - What you’ll do: run locally, optionally expose via Docker+ngrok, then deploy to EigenCompute
@@ -14,7 +38,7 @@ Why this matters: without trusted hardware, app operators can see user inputs. E
 - You’ll learn: private state sealing, qualitative hints, opt‑in sharing via deals, TEE deployment
 - Requirements: Node.js 20+, npm, Docker (optional for ngrok), EigenX CLI, ngrok account (optional)
 
-Flow:
+## Flow
 
 - A secret target number is generated when the game is created.
 - Guesses remain private (encrypted at rest); only qualitative hints are public.
@@ -26,6 +50,14 @@ Flow:
 - Payouts distribute the pot to winners and propagate agreed percentages via the shares graph.
 
 In this example, we use a local in‑memory ledger for testing purposes.
+
+### Hint thresholds
+
+Hints are qualitative and depend on the guess’s distance from the secret target relative to the game range (`max - min`):
+
+- Hot: distance / range ≤ 10%
+- Warm: distance / range ≤ 25% (and > 10%)
+- Cold: otherwise
 
 ## Prerequisites
 
