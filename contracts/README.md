@@ -1,4 +1,33 @@
-## Foundry
+## Contracts
+
+### Deploy (UUPS proxy)
+
+Required env:
+
+```
+export TOKEN=0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48 # USDC, example
+export MAX_POT=25000000000     # 25,000 USDC with 6 decimals
+export ADMIN=0x...
+export OPERATOR=0x...
+export GUARDIAN=0x...
+export WITHDRAWAL_DELAY=604800  # 7 days
+```
+
+Deploy:
+
+```
+forge script script/DeployGuessGame.s.sol:DeployGuessGame \
+  --rpc-url $RPC_URL --private-key $PK --broadcast -vvvv
+```
+
+Upgrade (guardian only):
+
+```
+export PROXY=0x...
+forge script script/UpgradeGuessGame.s.sol:UpgradeGuessGame \
+  --rpc-url $RPC_URL --private-key $PK --broadcast -vvvv
+```
+
 
 **Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
 
@@ -45,10 +74,20 @@ $ forge snapshot
 $ anvil
 ```
 
-### Deploy
+### Local Dev
 
 ```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
+# build
+forge build
+
+# test (unit, fuzz, UUPS, invariants)
+forge test -vv
+
+# gas snapshot
+forge snapshot
+
+# anvil local node
+anvil
 ```
 
 ### Cast
